@@ -1,22 +1,3 @@
-From 709f310563c99ff39ddb26e839041129980de3be Mon Sep 17 00:00:00 2001
-From: Andreas Rebert <andreas.rebert@embeddedartists.com>
-Date: Tue, 25 Aug 2015 16:08:07 +0200
-Subject: [PATCH] add imx6sx COM Board support
-
----
- arch/arm/boot/dts/Makefile                |   2 +
- arch/arm/boot/dts/imx6sxea-com-kit-m4.dts |  94 ++++
- arch/arm/boot/dts/imx6sxea-com-kit.dts    | 545 ++++++++++++++++++++++++
- arch/arm/boot/dts/imx6sxea-com.dtsi       | 420 ++++++++++++++++++
- sound/soc/fsl/Kconfig                     |  12 +
- sound/soc/fsl/Makefile                    |   2 +
- sound/soc/fsl/imx-wm8731.c                | 682 ++++++++++++++++++++++++++++++
- 7 files changed, 1757 insertions(+)
- create mode 100755 arch/arm/boot/dts/imx6sxea-com-kit-m4.dts
- create mode 100755 arch/arm/boot/dts/imx6sxea-com-kit.dts
- create mode 100755 arch/arm/boot/dts/imx6sxea-com.dtsi
- create mode 100644 sound/soc/fsl/imx-wm8731.c
-
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
 index 699bf8f..2812d55 100644
 --- a/arch/arm/boot/dts/Makefile

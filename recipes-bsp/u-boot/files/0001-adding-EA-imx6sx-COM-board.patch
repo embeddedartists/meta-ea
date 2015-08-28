@@ -1,33 +1,3 @@
-From 55e768bcfe4ef5efc5621e3f932d8a3a2b60d752 Mon Sep 17 00:00:00 2001
-From: Andreas Rebert <andreas.rebert@embeddedartists.com>
-Date: Thu, 20 Aug 2015 14:59:53 +0200
-Subject: [PATCH] adding EA imx6sx COM board
-
----
- arch/arm/include/asm/arch-mx6/spl.h                |   16 +
- board/embeddedartists/mx6sxea-com/Makefile         |    9 +
- board/embeddedartists/mx6sxea-com/README           |    7 +
- board/embeddedartists/mx6sxea-com/imximage.cfg     |  155 +++
- board/embeddedartists/mx6sxea-com/mx6sxea-com.c    | 1162 ++++++++++++++++++++
- .../embeddedartists/mx6sxea-com/mx6sxea-com_spl.c  |   46 +
- board/embeddedartists/mx6sxea-com/mx6sxea_eeprom.c |  197 ++++
- board/embeddedartists/mx6sxea-com/mx6sxea_eeprom.h |   38 +
- board/embeddedartists/mx6sxea-com/u-boot-spl.lds   |   52 +
- boards.cfg                                         |    1 +
- drivers/net/fec_mxc.c                              |   11 +
- include/configs/mx6sxea-com.h                      |  435 ++++++++
- 12 files changed, 2129 insertions(+)
- create mode 100644 arch/arm/include/asm/arch-mx6/spl.h
- create mode 100644 board/embeddedartists/mx6sxea-com/Makefile
- create mode 100644 board/embeddedartists/mx6sxea-com/README
- create mode 100644 board/embeddedartists/mx6sxea-com/imximage.cfg
- create mode 100644 board/embeddedartists/mx6sxea-com/mx6sxea-com.c
- create mode 100644 board/embeddedartists/mx6sxea-com/mx6sxea-com_spl.c
- create mode 100644 board/embeddedartists/mx6sxea-com/mx6sxea_eeprom.c
- create mode 100644 board/embeddedartists/mx6sxea-com/mx6sxea_eeprom.h
- create mode 100644 board/embeddedartists/mx6sxea-com/u-boot-spl.lds
- create mode 100644 include/configs/mx6sxea-com.h
-
 diff --git a/arch/arm/include/asm/arch-mx6/spl.h b/arch/arm/include/asm/arch-mx6/spl.h
 new file mode 100644
 index 0000000..efaa676
