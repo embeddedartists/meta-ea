@@ -4,6 +4,6 @@
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
-SRC_URI += "file://0001-adding-EA-imx6sx-COM-board.patch"
+SRC_URI += "file://0001-adding-EA-COM-boards.patch"
 
 
