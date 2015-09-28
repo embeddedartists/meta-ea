@@ -1,0 +1,8 @@
+# /etc/network/interfaces -- configuration file for ifup(8), ifdown(8)
+
+# Wired or wireless interfaces
+auto eth0
+#auto eth1
+iface eth0 inet dhcp
+iface eth1 inet dhcp
+

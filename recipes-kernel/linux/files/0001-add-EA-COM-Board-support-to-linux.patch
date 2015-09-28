@@ -952,7 +952,7 @@ index 0000000..d5e0b1d
 +
 diff --git a/arch/arm/boot/dts/imx6sxea-com-kit.dts b/arch/arm/boot/dts/imx6sxea-com-kit.dts
 new file mode 100644
-index 0000000..e47b619
+index 0000000..eed467c
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6sxea-com-kit.dts
 @@ -0,0 +1,579 @@
@@ -1017,7 +1017,7 @@ index 0000000..e47b619
 +			regulator-name = "lcd-3v3";
 +			gpio = <&gpio2 1 1>;
 +			enable-active-high;
-+			status = "disabled";
++			status = "okay";
 +		};
 +
 +		/* For uSD/MMC socket on EA COM Base Board */
@@ -1111,10 +1111,10 @@ index 0000000..e47b619
 +		     &pinctrl_lcdif_ctrl>;
 +	lcd-supply = <&reg_lcd_3v3>;
 +	display = <&display0>;
-+	status = "disabled";
++	status = "okay";
 +
 +	display0: display {
-+		bits-per-pixel = <16>;
++		bits-per-pixel = <32>;
 +		bus-width = <24>;
 +
 +		/* EA 7" display */
@@ -1133,7 +1133,7 @@ index 0000000..e47b619
 +				hsync-active = <0>;
 +				vsync-active = <0>;
 +				de-active = <1>;
-+				pixelclk-active = <0>;
++				pixelclk-active = <1>;
 +			};
 +		};
 +	};
@@ -1205,7 +1205,7 @@ index 0000000..e47b619
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_flexcan1>;
 +	xceiver-supply = <&reg_psu_5v>;
-+	/*trx-en-gpio = <&gpio4 25 GPIO_ACTIVE_LOW>;*/
++	trx-en-gpio = <&gpio4 25 GPIO_ACTIVE_LOW>;
 +	trx-stby-gpio = <&gpio2 17 GPIO_ACTIVE_LOW>;
 +	status = "okay";
 +};
@@ -1214,7 +1214,7 @@ index 0000000..e47b619
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_flexcan2>;
 +	xceiver-supply = <&reg_psu_5v>;
-+	/*trx-en-gpio = <&gpio4 25 GPIO_ACTIVE_LOW>;*/
++	trx-en-gpio = <&gpio4 25 GPIO_ACTIVE_LOW>;
 +	trx-stby-gpio = <&gpio2 17 GPIO_ACTIVE_LOW>;
 +	status = "okay";
 +};
@@ -1948,6 +1948,29 @@ index 0000000..a2990d7
 +
 +	};
 +};
+diff --git a/arch/arm/mach-imx/mach-imx6sx.c b/arch/arm/mach-imx/mach-imx6sx.c
+index 7f5188f..131e896 100755
+--- a/arch/arm/mach-imx/mach-imx6sx.c
++++ b/arch/arm/mach-imx/mach-imx6sx.c
+@@ -166,6 +166,8 @@ static int __init imx6sx_arm2_flexcan_fixup(void)
+ 
+ 	if (of_machine_is_compatible("fsl,imx6sx-sdb") && canfd_en)
+ 		imx6sx_arm2_flexcan0_switch(1);
++	if (of_machine_is_compatible("fsl,imx6sxea-com") && canfd_en)
++		imx6sx_arm2_flexcan0_switch(1);
+ 
+ 	return 0;
+ }
+@@ -317,7 +319,8 @@ static void __init imx6sx_init_late(void)
+ 	}
+ 
+ 	if (of_machine_is_compatible("fsl,imx6sx-sdb") ||
+-		of_machine_is_compatible("fsl,imx6sx-sabreauto"))
++		of_machine_is_compatible("fsl,imx6sx-sabreauto") ||
++		of_machine_is_compatible("fsl,imx6sxea-com"))
+ 		imx6sx_arm2_flexcan_fixup();
+ 
+ 	imx6sx_cpuidle_init();
 diff --git a/drivers/input/touchscreen/Kconfig b/drivers/input/touchscreen/Kconfig
 index 1f2f150..c9d3f0e 100644
 --- a/drivers/input/touchscreen/Kconfig
