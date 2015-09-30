@@ -2865,7 +2865,7 @@ index 0000000..35e4cd3
 +#endif
 diff --git a/board/embeddedartists/mx6sxea-com/mx6sxea-com.c b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 new file mode 100644
-index 0000000..facf95c
+index 0000000..06d5857
 --- /dev/null
 +++ b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 @@ -0,0 +1,1186 @@
@@ -3405,10 +3405,10 @@ index 0000000..facf95c
 +	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
 +
 +	/* Power up the LCD */
-+	gpio_direction_output(IMX_GPIO_NR(2, 1) , 0);
++	gpio_direction_output(IMX_GPIO_NR(2, 1) , 1);
 +
 +	/* Set Brightness to high */
-+	gpio_direction_output(IMX_GPIO_NR(7, 10) , 0);
++	gpio_direction_output(IMX_GPIO_NR(7, 10) , 1);
 +
 +	/* Backlight power enable */
 +	gpio_direction_output(IMX_GPIO_NR(1, 9) , 1);
