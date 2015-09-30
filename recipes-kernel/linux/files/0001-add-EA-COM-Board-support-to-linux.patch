@@ -952,10 +952,10 @@ index 0000000..d5e0b1d
 +
 diff --git a/arch/arm/boot/dts/imx6sxea-com-kit.dts b/arch/arm/boot/dts/imx6sxea-com-kit.dts
 new file mode 100644
-index 0000000..eed467c
+index 0000000..df57d2d
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6sxea-com-kit.dts
-@@ -0,0 +1,579 @@
+@@ -0,0 +1,588 @@
 +/*
 + * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
 + *
@@ -1307,8 +1307,10 @@ index 0000000..eed467c
 +	ar1021@4d {
 +		compatible = "microchip,ar1021-i2c";
 +		reg = <0x4d>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_ar1021_int>;
 +		interrupt-parent = <&gpio1>;
-+		interrupts = <17 0x2>;
++		interrupts = <17 IRQ_TYPE_EDGE_FALLING>;
 +	};
 +
 +};
@@ -1366,6 +1368,13 @@ index 0000000..eed467c
 +				MX6SX_PAD_QSPI1A_DQS__CANFD_TX2         0x1b0b0
 +			>;
 +		};
++
++		pinctrl_ar1021_int: ar1021_intgrp {
++			fsl,pins = <
++				MX6SX_PAD_CSI_DATA03__GPIO1_IO_17       0x1b0b0
++			>;
++		};
++
 +
 +		pinctrl_egalax_int: egalax_intgrp {
 +			fsl,pins = <
@@ -2009,7 +2018,7 @@ index e433241..13e94a4 100644
  obj-$(CONFIG_TOUCHSCREEN_AD7879_SPI)	+= ad7879-spi.o
 diff --git a/drivers/input/touchscreen/ar1021_i2c.c b/drivers/input/touchscreen/ar1021_i2c.c
 new file mode 100644
-index 0000000..e8c0e40
+index 0000000..55be98b
 --- /dev/null
 +++ b/drivers/input/touchscreen/ar1021_i2c.c
 @@ -0,0 +1,182 @@
@@ -2124,7 +2133,7 @@ index 0000000..e8c0e40
 +
 +	error = devm_request_threaded_irq(&client->dev, client->irq,
 +					  NULL, ar1021_i2c_irq,
-+					  IRQF_TRIGGER_RISING | IRQF_ONESHOT,
++					  IRQF_TRIGGER_LOW | IRQF_ONESHOT,
 +					  "ar1021_i2c", ar1021);
 +	if (error) {
 +		dev_err(&client->dev,
