@@ -1,0 +1,1490 @@
+From 967204bb737e9bf235fc9249b96b9cb17de487eb Mon Sep 17 00:00:00 2001
+From: Andreas Rebert <andreas.rebert@embeddedartists.com>
+Date: Sat, 17 Oct 2015 05:40:36 +0200
+Subject: [PATCH] add EA COM Board support to linux
+
+---
+ arch/arm/boot/dts/Makefile             |   3 +-
+ arch/arm/boot/dts/imx6ulea-com-kit.dts | 371 ++++++++++++++++++++++++++
+ arch/arm/boot/dts/imx6ulea-com.dtsi    | 304 +++++++++++++++++++++
+ drivers/input/touchscreen/Kconfig      |  13 +
+ drivers/input/touchscreen/Makefile     |   1 +
+ drivers/input/touchscreen/ar1021_i2c.c | 202 ++++++++++++++
+ sound/soc/fsl/Kconfig                  |  12 +
+ sound/soc/fsl/Makefile                 |   2 +
+ sound/soc/fsl/imx-wm8731.c             | 472 +++++++++++++++++++++++++++++++++
+ 9 files changed, 1379 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/boot/dts/imx6ulea-com-kit.dts
+ create mode 100644 arch/arm/boot/dts/imx6ulea-com.dtsi
+ create mode 100644 drivers/input/touchscreen/ar1021_i2c.c
+ create mode 100644 sound/soc/fsl/imx-wm8731.c
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 1dadacf..c6ac9b3 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -255,7 +255,8 @@ dtb-$(CONFIG_ARCH_MXC) += \
+ 	imx7d-sdb-sim.dtb \
+ 	imx7d-sdb-touch.dtb \
+ 	imx7d-sdb-wm8960.dtb \
+-	imx7d-sdb-m4.dtb
++	imx7d-sdb-m4.dtb \
++	imx6ulea-com-kit.dtb
+ dtb-$(CONFIG_ARCH_MXS) += imx23-evk.dtb \
+ 	imx23-olinuxino.dtb \
+ 	imx23-stmp378x_devb.dtb \
+diff --git a/arch/arm/boot/dts/imx6ulea-com-kit.dts b/arch/arm/boot/dts/imx6ulea-com-kit.dts
+new file mode 100644
+index 0000000..e7311f7
+--- /dev/null
++++ b/arch/arm/boot/dts/imx6ulea-com-kit.dts
+@@ -0,0 +1,371 @@
++/*
++ * Copyright (C) 2015 Freescale Semiconductor, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/dts-v1/;
++
++#include "imx6ulea-com.dtsi"
++
++/ {
++	model = "Embedded Artists i.MX6 UltraLite COM Kit";
++	compatible = "fsl,imx6ulea-com", "fsl,imx6ul";
++
++	chosen {
++		stdout-path = &uart1;
++	};
++
++	backlight {
++		compatible = "pwm-backlight";
++		pwms = <&pwm1 0 5000000>;
++		brightness-levels = <0 4 8 16 32 64 128 255>;
++		default-brightness-level = <6>;
++		status = "okay";
++	};
++
++	pxp_v4l2 {
++		compatible = "fsl,imx6ul-pxp-v4l2", "fsl,imx6sx-pxp-v4l2", "fsl,imx6sl-pxp-v4l2";
++		status = "okay";
++	};
++
++	regulators {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		reg_can_3v3: regulator@0 {
++			compatible = "regulator-fixed";
++			reg = <0>;
++			regulator-name = "can-3v3";
++			regulator-min-microvolt = <3300000>;
++			regulator-max-microvolt = <3300000>;
++			gpios = <&gpio5 1 GPIO_ACTIVE_LOW>;
++		};
++
++		reg_sd1_vmmc: regulator@1 {
++			compatible = "regulator-fixed";
++			regulator-name = "VSD_3V3";
++			regulator-min-microvolt = <3300000>;
++			regulator-max-microvolt = <3300000>;
++			gpio = <&gpio1 9 GPIO_ACTIVE_HIGH>;
++			enable-active-high;
++		};
++
++		reg_3v3: regulator@2 {
++			compatible = "regulator-fixed";
++			reg = <2>;
++			regulator-name = "reg-3v3";
++			regulator-min-microvolt = <3300000>;
++			regulator-max-microvolt = <3300000>;
++		};
++
++	};
++
++	sound {
++		compatible = "fsl,imx-audio-wm8731";
++		model = "wm8731-audio";
++		ssi-controller = <&sai2>;
++		src-port = <2>;
++		ext-port = <3>;
++		audio-codec = <&codec>;
++		audio-routing = "LOUT", "ROUT", "LLINEIN", "RLINEIN";
++		gpr = <&gpr 0x4 20>;
++	};
++
++
++};
++
++
++&clks {
++	assigned-clocks = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
++	assigned-clock-rates = <790272000>;
++};
++
++
++&flexcan1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan1>;
++	xceiver-supply = <&reg_can_3v3>;
++	status = "okay";
++};
++
++&flexcan2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan2>;
++	xceiver-supply = <&reg_can_3v3>;
++	status = "okay";
++};
++
++
++&lcdif {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_lcdif_dat
++		     &pinctrl_lcdif_ctrl>;
++	display = <&display0>;
++	status = "okay";
++
++	display0: display {
++		bits-per-pixel = <32>;
++		bus-width = <24>;
++
++		/* EA 7" display */
++		display-timings {
++			native-mode = <&timing0>;
++			timing0: timing0 {
++				clock-frequency = <33500000>;
++				hactive = <800>;
++				vactive = <480>;
++				hback-porch = <89>;
++				hfront-porch = <164>;
++				vback-porch = <75>;/*<23>;*/
++				vfront-porch = <75>;/*<10>;*/
++				hsync-len = <10>;
++				vsync-len = <10>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				de-active = <1>;
++				pixelclk-active = <1>;
++			};
++		};
++	};
++};
++
++&pwm1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_pwm1>;
++	status = "okay";
++};
++
++&pxp {
++	status = "okay";
++};
++
++&sai2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_sai2>;
++
++	assigned-clocks = <&clks IMX6UL_CLK_SAI2_SEL>,
++			  <&clks IMX6UL_CLK_SAI2>;
++	assigned-clock-parents = <&clks IMX6UL_CLK_PLL4_AUDIO_DIV>;
++	assigned-clock-rates = <0>, <11289600>;
++
++	status = "okay";
++};
++
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart1>;
++	status = "okay";
++};
++
++&uart2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart2>;
++	status = "okay";
++};
++
++&uart3 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart3>;
++	status = "okay";
++};
++
++&usbotg1 {
++	vbus-supply = <&reg_3v3>;
++	status = "okay";
++};
++
++&usbotg2 {
++	dr_mode = "host";
++	disable-over-current;
++	status = "okay";
++};
++
++
++&usdhc1 {
++	pinctrl-names = "default", "state_100mhz", "state_200mhz";
++	pinctrl-0 = <&pinctrl_usdhc1>;
++	pinctrl-1 = <&pinctrl_usdhc1_100mhz>;
++	pinctrl-2 = <&pinctrl_usdhc1_200mhz>;
++	cd-gpios = <&gpio1 3 0>;
++	keep-power-in-suspend;
++	enable-sdio-wakeup;
++	vmmc-supply = <&reg_sd1_vmmc>;
++	status = "okay";
++};
++
++
++&i2c1 {
++
++	codec: wm8731@1a {
++		compatible = "wlf,wm8731";
++		reg = <0x1a>;
++		clocks = <&clks IMX6UL_CLK_SAI2>;
++
++		AVDD-supply = <&vgen5_reg>;
++		HPVDD-supply = <&vgen5_reg>;
++		DCVDD-supply = <&vgen5_reg>;
++		DBVDD-supply = <&vgen5_reg>;
++
++	};
++
++	ar1021@4d {
++		compatible = "microchip,ar1021-i2c";
++		reg = <0x4d>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_ar1021_int>;
++		interrupt-parent = <&gpio4>;
++		interrupts = <24 IRQ_TYPE_EDGE_FALLING>;
++		ar1021,swap_xy;
++		ar1021,invert_x;
++		#ar1021,invert_y;
++	};
++};
++
++
++
++&iomuxc {
++
++	imx6ulea-com-kit {
++
++
++		pinctrl_flexcan1: flexcan1grp{
++			fsl,pins = <
++				MX6UL_PAD_UART3_RTS_B__FLEXCAN1_RX	0x1b020
++				MX6UL_PAD_UART3_CTS_B__FLEXCAN1_TX	0x1b020
++			>;
++		};
++
++		pinctrl_flexcan2: flexcan2grp{
++			fsl,pins = <
++				MX6UL_PAD_UART2_RTS_B__FLEXCAN2_RX	0x1b020
++				MX6UL_PAD_UART2_CTS_B__FLEXCAN2_TX	0x1b020
++			>;
++		};
++
++		pinctrl_lcdif_dat: lcdifdatgrp {
++			fsl,pins = <
++				MX6UL_PAD_LCD_DATA00__LCDIF_DATA00  0x79
++				MX6UL_PAD_LCD_DATA01__LCDIF_DATA01  0x79
++				MX6UL_PAD_LCD_DATA02__LCDIF_DATA02  0x79
++				MX6UL_PAD_LCD_DATA03__LCDIF_DATA03  0x79
++				MX6UL_PAD_LCD_DATA04__LCDIF_DATA04  0x79
++				MX6UL_PAD_LCD_DATA05__LCDIF_DATA05  0x79
++				MX6UL_PAD_LCD_DATA06__LCDIF_DATA06  0x79
++				MX6UL_PAD_LCD_DATA07__LCDIF_DATA07  0x79
++				MX6UL_PAD_LCD_DATA08__LCDIF_DATA08  0x79
++				MX6UL_PAD_LCD_DATA09__LCDIF_DATA09  0x79
++				MX6UL_PAD_LCD_DATA10__LCDIF_DATA10  0x79
++				MX6UL_PAD_LCD_DATA11__LCDIF_DATA11  0x79
++				MX6UL_PAD_LCD_DATA12__LCDIF_DATA12  0x79
++				MX6UL_PAD_LCD_DATA13__LCDIF_DATA13  0x79
++				MX6UL_PAD_LCD_DATA14__LCDIF_DATA14  0x79
++				MX6UL_PAD_LCD_DATA15__LCDIF_DATA15  0x79
++				MX6UL_PAD_LCD_DATA16__LCDIF_DATA16  0x79
++				MX6UL_PAD_LCD_DATA17__LCDIF_DATA17  0x79
++				MX6UL_PAD_LCD_DATA18__LCDIF_DATA18  0x79
++				MX6UL_PAD_LCD_DATA19__LCDIF_DATA19  0x79
++				MX6UL_PAD_LCD_DATA20__LCDIF_DATA20  0x79
++				MX6UL_PAD_LCD_DATA21__LCDIF_DATA21  0x79
++				MX6UL_PAD_LCD_DATA22__LCDIF_DATA22  0x79
++				MX6UL_PAD_LCD_DATA23__LCDIF_DATA23  0x79
++			>;
++		};
++
++		pinctrl_lcdif_ctrl: lcdifctrlgrp {
++			fsl,pins = <
++				MX6UL_PAD_LCD_CLK__LCDIF_CLK	    0x79
++				MX6UL_PAD_LCD_ENABLE__LCDIF_ENABLE  0x79
++				MX6UL_PAD_LCD_HSYNC__LCDIF_HSYNC    0x79
++				MX6UL_PAD_LCD_VSYNC__LCDIF_VSYNC    0x79
++				/* Display power enable */
++				MX6UL_PAD_GPIO1_IO02__GPIO1_IO02    0x79
++			>;
++		};
++
++		pinctrl_pwm1: pwm1grp {
++			fsl,pins = <
++				MX6UL_PAD_GPIO1_IO08__PWM1_OUT   0x110b0
++			>;
++		};
++
++
++		pinctrl_uart1: uart1grp {
++			fsl,pins = <
++				MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX 0x1b0b1
++				MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX 0x1b0b1
++			>;
++		};
++
++		pinctrl_uart2: uart2grp {
++			fsl,pins = <
++				MX6UL_PAD_UART2_TX_DATA__UART2_DCE_TX	0x1b0b1
++				MX6UL_PAD_UART2_RX_DATA__UART2_DCE_RX	0x1b0b1
++			>;
++		};
++
++		pinctrl_uart3: uart3grp {
++			fsl,pins = <
++				MX6UL_PAD_UART3_TX_DATA__UART3_DCE_TX	0x1b0b1
++				MX6UL_PAD_UART3_TX_DATA__UART3_DTE_RX	0x1b0b1
++			>;
++		};
++
++
++		pinctrl_usdhc1: usdhc1grp {
++			fsl,pins = <
++				MX6UL_PAD_SD1_CMD__USDHC1_CMD     0x17059
++				MX6UL_PAD_SD1_CLK__USDHC1_CLK     0x10071
++				MX6UL_PAD_SD1_DATA0__USDHC1_DATA0 0x17059
++				MX6UL_PAD_SD1_DATA1__USDHC1_DATA1 0x17059
++				MX6UL_PAD_SD1_DATA2__USDHC1_DATA2 0x17059
++				MX6UL_PAD_SD1_DATA3__USDHC1_DATA3 0x17059
++				MX6UL_PAD_GPIO1_IO03__GPIO1_IO03  0x17059
++			>;
++		};
++
++		pinctrl_usdhc1_100mhz: usdhc1grp100mhz {
++			fsl,pins = <
++				MX6UL_PAD_SD1_CMD__USDHC1_CMD     0x170b9
++				MX6UL_PAD_SD1_CLK__USDHC1_CLK     0x100b9
++				MX6UL_PAD_SD1_DATA0__USDHC1_DATA0 0x170b9
++				MX6UL_PAD_SD1_DATA1__USDHC1_DATA1 0x170b9
++				MX6UL_PAD_SD1_DATA2__USDHC1_DATA2 0x170b9
++				MX6UL_PAD_SD1_DATA3__USDHC1_DATA3 0x170b9
++			>;
++		};
++
++		pinctrl_usdhc1_200mhz: usdhc1grp200mhz {
++			fsl,pins = <
++				MX6UL_PAD_SD1_CMD__USDHC1_CMD     0x170f9
++				MX6UL_PAD_SD1_CLK__USDHC1_CLK     0x100f9
++				MX6UL_PAD_SD1_DATA0__USDHC1_DATA0 0x170f9
++				MX6UL_PAD_SD1_DATA1__USDHC1_DATA1 0x170f9
++				MX6UL_PAD_SD1_DATA2__USDHC1_DATA2 0x170f9
++				MX6UL_PAD_SD1_DATA3__USDHC1_DATA3 0x170f9
++			>;
++		};
++
++
++		pinctrl_sai2: sai2grp {
++			fsl,pins = <
++				MX6UL_PAD_JTAG_TDI__SAI2_TX_BCLK	0x17088
++				MX6UL_PAD_JTAG_TDO__SAI2_TX_SYNC	0x17088
++				MX6UL_PAD_JTAG_TRST_B__SAI2_TX_DATA	0x11088
++				MX6UL_PAD_JTAG_TCK__SAI2_RX_DATA	0x11088
++				MX6UL_PAD_JTAG_TMS__SAI2_MCLK		0x17088
++			>;
++		};
++
++		pinctrl_ar1021_int: ar1021_intgrp {
++			fsl,pins = <
++				MX6UL_PAD_CSI_DATA03__GPIO4_IO24       0x1b0b0
++			>;
++		};
++
++	};
++};
+diff --git a/arch/arm/boot/dts/imx6ulea-com.dtsi b/arch/arm/boot/dts/imx6ulea-com.dtsi
+new file mode 100644
+index 0000000..0272fee
+--- /dev/null
++++ b/arch/arm/boot/dts/imx6ulea-com.dtsi
+@@ -0,0 +1,304 @@
++/*
++ * Copyright (C) 2015 Freescale Semiconductor, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++
++#include <dt-bindings/input/input.h>
++#include "imx6ul.dtsi"
++
++/ {
++	model = "Embedded Artists i.MX6 UltraLite COM Board";
++	compatible = "fsl,imx6ulea-com", "fsl,imx6ul";
++
++	memory {
++		reg = <0x80000000 0x20000000>;
++	};
++
++};
++
++&cpu0 {
++	operating-points = <
++		/* kHz	uV */
++		528000	1175000
++		396000	1175000
++		198000	1175000
++	>;
++	fsl,soc-operating-points = <
++		/* KHz	uV */
++		528000	1175000
++		396000	1175000
++		198000	1175000
++	>;
++
++	arm-supply = <&sw1c_reg>;
++	soc-supply = <&sw1c_reg>;
++	fsl,arm-soc-shared = <1>;
++};
++
++
++&fec1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_enet1>;
++	phy-mode = "rmii";
++	phy-handle = <&ethphy0>;
++	status = "okay";
++};
++
++&fec2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_enet2>;
++	phy-mode = "rmii";
++	phy-handle = <&ethphy1>;
++	status = "okay";
++
++	mdio {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		ethphy0: ethernet-phy@2 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <2>;
++		};
++
++		ethphy1: ethernet-phy@1 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <1>;
++		};
++	};
++};
++
++&gpc {
++	fsl,cpu_pupscr_sw2iso = <0x1>;
++	fsl,cpu_pupscr_sw = <0x0>;
++	fsl,cpu_pdnscr_iso2sw = <0x1>;
++	fsl,cpu_pdnscr_iso = <0x1>;
++	fsl,wdog-reset = <1>; /* watchdog select of reset source */
++	fsl,ldo-bypass = <1>; /* use ldo-bypass, u-boot will check it and configure */
++};
++
++
++&usdhc2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usdhc2>;
++	bus-width = <8>;
++	non-removable;
++	status = "okay";
++};
++
++&i2c1 {
++	clock-frequency = <100000>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c1>;
++	status = "okay";
++
++	pmic: pfuze3000@08 {
++		compatible = "fsl,pfuze3000";
++		reg = <0x08>;
++
++		regulators {
++			sw1a_reg: sw1a {
++				regulator-min-microvolt = <700000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-boot-on;
++				regulator-always-on;
++				regulator-ramp-delay = <6250>;
++			};
++
++			/* use sw1c_reg to align with pfuze100/pfuze200 */
++			sw1c_reg: sw1b {
++				regulator-min-microvolt = <700000>;
++				regulator-max-microvolt = <1475000>;
++				regulator-boot-on;
++				regulator-always-on;
++				regulator-ramp-delay = <6250>;
++			};
++
++			sw2_reg: sw2 {
++				regulator-min-microvolt = <1500000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			sw3a_reg: sw3 {
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1650000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			swbst_reg: swbst {
++				regulator-min-microvolt = <5000000>;
++				regulator-max-microvolt = <5150000>;
++			};
++
++			snvs_reg: vsnvs {
++				regulator-min-microvolt = <1000000>;
++				regulator-max-microvolt = <3000000>;
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			vref_reg: vrefddr {
++				regulator-boot-on;
++				regulator-always-on;
++			};
++
++			vgen1_reg: vldo1 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++
++			vgen2_reg: vldo2 {
++				regulator-min-microvolt = <800000>;
++				regulator-max-microvolt = <1550000>;
++				regulator-always-on;
++			};
++
++			vgen3_reg: vccsd {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++
++			vgen4_reg: v33 {
++				regulator-min-microvolt = <2850000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++
++			vgen5_reg: vldo3 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++
++			vgen6_reg: vldo4 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++		};
++	};
++
++	at24@55 {
++		compatible = "at,24c64";
++		pagesize = <32>;
++		reg = <0x55>;
++	};
++
++};
++
++&i2c2 {
++	clock_frequency = <100000>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c2>;
++	status = "okay";
++};
++
++&qspi {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_qspi>;
++	status = "okay";
++	ddrsmp=<0>;
++
++	flash0: n25q256a@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "micron,n25q256a";
++		spi-max-frequency = <29000000>;
++		spi-nor,ddr-quad-read-dummy = <6>;
++		reg = <0>;
++	};
++};
++
++&iomuxc {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_hog_1>;
++	imx6ulea-com {
++		pinctrl_hog_1: hoggrp-1 {
++			fsl,pins = <
++				MX6UL_PAD_LCD_RESET__WDOG1_WDOG_ANY    0x30b0
++				MX6UL_PAD_GPIO1_IO05__USDHC1_VSELECT	0x17059 /* SD1 VSELECT */
++				MX6UL_PAD_GPIO1_IO09__GPIO1_IO09        0x17059 /* SD1 RESET */
++			>;
++		};
++
++
++		pinctrl_enet1: enet1grp {
++			fsl,pins = <
++				MX6UL_PAD_ENET1_RX_EN__ENET1_RX_EN	0x1b0b0
++				MX6UL_PAD_ENET1_RX_ER__ENET1_RX_ER	0x1b0b0
++				MX6UL_PAD_ENET1_RX_DATA0__ENET1_RDATA00	0x1b0b0
++				MX6UL_PAD_ENET1_RX_DATA1__ENET1_RDATA01	0x1b0b0
++				MX6UL_PAD_ENET1_TX_EN__ENET1_TX_EN	0x1b0b0
++				MX6UL_PAD_ENET1_TX_DATA0__ENET1_TDATA00	0x1b0b0
++				MX6UL_PAD_ENET1_TX_DATA1__ENET1_TDATA01	0x1b0b0
++				MX6UL_PAD_ENET1_TX_CLK__ENET1_REF_CLK1	0x4001b031
++			>;
++		};
++
++		pinctrl_enet2: enet2grp {
++			fsl,pins = <
++				MX6UL_PAD_GPIO1_IO07__ENET2_MDC		0x1b0b0
++				MX6UL_PAD_GPIO1_IO06__ENET2_MDIO	0x1b0b0
++				MX6UL_PAD_ENET2_RX_EN__ENET2_RX_EN	0x1b0b0
++				MX6UL_PAD_ENET2_RX_ER__ENET2_RX_ER	0x1b0b0
++				MX6UL_PAD_ENET2_RX_DATA0__ENET2_RDATA00	0x1b0b0
++				MX6UL_PAD_ENET2_RX_DATA1__ENET2_RDATA01	0x1b0b0
++				MX6UL_PAD_ENET2_TX_EN__ENET2_TX_EN	0x1b0b0
++				MX6UL_PAD_ENET2_TX_DATA0__ENET2_TDATA00	0x1b0b0
++				MX6UL_PAD_ENET2_TX_DATA1__ENET2_TDATA01	0x1b0b0
++				MX6UL_PAD_ENET2_TX_CLK__ENET2_REF_CLK2	0x4001b031
++				MX6UL_PAD_SNVS_TAMPER0__GPIO5_IO00	0x80000000
++			>;
++		};
++
++
++
++		pinctrl_usdhc2: usdhc2grp {
++			fsl,pins = <
++				MX6UL_PAD_NAND_RE_B__USDHC2_CLK     0x10069
++				MX6UL_PAD_NAND_WE_B__USDHC2_CMD     0x17059
++				MX6UL_PAD_NAND_DATA00__USDHC2_DATA0 0x17059
++				MX6UL_PAD_NAND_DATA01__USDHC2_DATA1 0x17059
++				MX6UL_PAD_NAND_DATA02__USDHC2_DATA2 0x17059
++				MX6UL_PAD_NAND_DATA03__USDHC2_DATA3 0x17059
++			>;
++		};
++
++
++		pinctrl_i2c1: i2c1grp {
++			fsl,pins = <
++				MX6UL_PAD_UART4_TX_DATA__I2C1_SCL 0x4001b8b0
++				MX6UL_PAD_UART4_RX_DATA__I2C1_SDA 0x4001b8b0
++			>;
++		};
++
++		pinctrl_i2c2: i2c2grp {
++			fsl,pins = <
++				MX6UL_PAD_UART5_TX_DATA__I2C2_SCL 0x4001b8b0
++				MX6UL_PAD_UART5_RX_DATA__I2C2_SDA 0x4001b8b0
++			>;
++		};
++
++		pinctrl_qspi: qspigrp {
++			fsl,pins = <
++				MX6UL_PAD_NAND_WP_B__QSPI_A_SCLK      0x70a1
++				MX6UL_PAD_NAND_READY_B__QSPI_A_DATA00 0x70a1
++				MX6UL_PAD_NAND_CE0_B__QSPI_A_DATA01   0x70a1
++				MX6UL_PAD_NAND_CE1_B__QSPI_A_DATA02   0x70a1
++				MX6UL_PAD_NAND_CLE__QSPI_A_DATA03     0x70a1
++				MX6UL_PAD_NAND_DQS__QSPI_A_SS0_B      0x70a1
++			>;
++		};
++
++
++
++	};
++};
+diff --git a/drivers/input/touchscreen/Kconfig b/drivers/input/touchscreen/Kconfig
+index e013025..337cbc6 100644
+--- a/drivers/input/touchscreen/Kconfig
++++ b/drivers/input/touchscreen/Kconfig
+@@ -86,6 +86,19 @@ config TOUCHSCREEN_AD7879_SPI
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called ad7879-spi.
+ 
++config TOUCHSCREEN_AR1021_I2C
++	tristate "Microchip AR1021 i2c touchscreen"
++	depends on I2C && OF
++	help
++	  Say Y here if you have the Microchip AR1021 touchscreen controller
++	  chip in your system.
++
++	  If unsure, say N.
++
++	  To compile this driver as a module, choose M here: the
++	  module will be called ar1021_i2c.
++
++
+ config TOUCHSCREEN_ATMEL_MXT
+ 	tristate "Atmel mXT I2C Touchscreen"
+ 	depends on I2C
+diff --git a/drivers/input/touchscreen/Makefile b/drivers/input/touchscreen/Makefile
+index 88e481f..e15a432 100644
+--- a/drivers/input/touchscreen/Makefile
++++ b/drivers/input/touchscreen/Makefile
+@@ -8,6 +8,7 @@ wm97xx-ts-y := wm97xx-core.o
+ 
+ obj-$(CONFIG_TOUCHSCREEN_88PM860X)	+= 88pm860x-ts.o
+ obj-$(CONFIG_TOUCHSCREEN_AD7877)	+= ad7877.o
++obj-$(CONFIG_TOUCHSCREEN_AR1021_I2C)	+= ar1021_i2c.o
+ obj-$(CONFIG_TOUCHSCREEN_AD7879)	+= ad7879.o
+ obj-$(CONFIG_TOUCHSCREEN_AD7879_I2C)	+= ad7879-i2c.o
+ obj-$(CONFIG_TOUCHSCREEN_AD7879_SPI)	+= ad7879-spi.o
+diff --git a/drivers/input/touchscreen/ar1021_i2c.c b/drivers/input/touchscreen/ar1021_i2c.c
+new file mode 100644
+index 0000000..c7dc0f0
+--- /dev/null
++++ b/drivers/input/touchscreen/ar1021_i2c.c
+@@ -0,0 +1,202 @@
++/*
++ * Microchip AR1021 driver for I2C
++ *
++ * Author: Christian Gmeiner <christian.gmeiner@gmail.com>
++ *
++ * License: GPLv2 as published by the FSF.
++ */
++
++#include <linux/module.h>
++#include <linux/input.h>
++#include <linux/of.h>
++#include <linux/i2c.h>
++#include <linux/irq.h>
++#include <linux/interrupt.h>
++
++#define AR1021_TOCUH_PKG_SIZE	5
++
++#define AR1021_MAX_X	4095
++#define AR1021_MAX_Y	4095
++
++struct ar1021_i2c {
++	struct i2c_client *client;
++	struct input_dev *input;
++	u8 data[AR1021_TOCUH_PKG_SIZE];
++	bool swap_xy;
++	bool invert_x;
++	bool invert_y;
++};
++
++static irqreturn_t ar1021_i2c_irq(int irq, void *dev_id)
++{
++	struct ar1021_i2c *ar1021 = dev_id;
++	struct input_dev *input = ar1021->input;
++	u8 *data = ar1021->data;
++	unsigned int x, y, button;
++	int retval;
++
++	retval = i2c_master_recv(ar1021->client,
++				ar1021->data, sizeof(ar1021->data));
++	if (retval != sizeof(ar1021->data))
++		goto out;
++
++	/* sync bit set ? */
++	if ((data[0] & 0x80) == 0)
++		goto out;
++
++	button = data[0] & BIT(0);
++	x = ((data[2] & 0x1f) << 7) | (data[1] & 0x7f);
++	y = ((data[4] & 0x1f) << 7) | (data[3] & 0x7f);
++
++	if (ar1021->swap_xy)
++		swap(x, y);
++	if (ar1021->invert_x)
++		x = AR1021_MAX_X - x;
++	if (ar1021->invert_y)
++		y = AR1021_MAX_Y - y;
++
++	input_report_abs(input, ABS_X, x);
++	input_report_abs(input, ABS_Y, y);
++	input_report_key(input, BTN_TOUCH, button);
++	input_sync(input);
++
++out:
++	return IRQ_HANDLED;
++}
++
++static int ar1021_i2c_open(struct input_dev *dev)
++{
++	struct ar1021_i2c *ar1021 = input_get_drvdata(dev);
++	struct i2c_client *client = ar1021->client;
++
++	enable_irq(client->irq);
++
++	return 0;
++}
++
++static void ar1021_i2c_close(struct input_dev *dev)
++{
++	struct ar1021_i2c *ar1021 = input_get_drvdata(dev);
++	struct i2c_client *client = ar1021->client;
++
++	disable_irq(client->irq);
++}
++
++static int ar1021_i2c_probe(struct i2c_client *client,
++				     const struct i2c_device_id *id)
++{
++	struct ar1021_i2c *ar1021;
++	struct input_dev *input;
++	struct device_node *np = client->dev.of_node;
++	int error;
++
++	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
++		dev_err(&client->dev, "i2c_check_functionality error\n");
++		return -ENXIO;
++	}
++
++	ar1021 = devm_kzalloc(&client->dev, sizeof(*ar1021), GFP_KERNEL);
++	if (!ar1021)
++		return -ENOMEM;
++
++	input = devm_input_allocate_device(&client->dev);
++	if (!input)
++		return -ENOMEM;
++
++	if (!np)
++		return -ENODEV;
++
++	ar1021->client = client;
++	ar1021->input = input;
++	ar1021->swap_xy = of_property_read_bool(np, "ar1021,swap_xy");
++	ar1021->invert_x = of_property_read_bool(np, "ar1021,invert_x");
++	ar1021->invert_y = of_property_read_bool(np, "ar1021,invert_y");
++
++	input->name = "ar1021 I2C Touchscreen";
++	input->id.bustype = BUS_I2C;
++	input->dev.parent = &client->dev;
++	input->open = ar1021_i2c_open;
++	input->close = ar1021_i2c_close;
++
++	__set_bit(EV_ABS, input->evbit);
++	__set_bit(EV_KEY, input->evbit);
++	__set_bit(BTN_TOUCH, input->keybit);
++
++	input_set_abs_params(input, ABS_X, 0, AR1021_MAX_X, 0, 0);
++	input_set_abs_params(input, ABS_Y, 0, AR1021_MAX_Y, 0, 0);
++
++	input_set_drvdata(input, ar1021);
++
++	error = devm_request_threaded_irq(&client->dev, client->irq,
++					  NULL, ar1021_i2c_irq,
++					  IRQF_ONESHOT,
++					  "ar1021_i2c", ar1021);
++	if (error) {
++		dev_err(&client->dev,
++			"Failed to enable IRQ, error: %d\n", error);
++		return error;
++	}
++
++	/* Disable the IRQ, we'll enable it in ar1021_i2c_open() */
++	disable_irq(client->irq);
++
++	error = input_register_device(ar1021->input);
++	if (error) {
++		dev_err(&client->dev,
++			"Failed to register input device, error: %d\n", error);
++		return error;
++	}
++
++	i2c_set_clientdata(client, ar1021);
++	return 0;
++}
++
++static int __maybe_unused ar1021_i2c_suspend(struct device *dev)
++{
++	struct i2c_client *client = to_i2c_client(dev);
++
++	disable_irq(client->irq);
++
++	return 0;
++}
++
++static int __maybe_unused ar1021_i2c_resume(struct device *dev)
++{
++	struct i2c_client *client = to_i2c_client(dev);
++
++	enable_irq(client->irq);
++
++	return 0;
++}
++
++static SIMPLE_DEV_PM_OPS(ar1021_i2c_pm, ar1021_i2c_suspend, ar1021_i2c_resume);
++
++static const struct i2c_device_id ar1021_i2c_id[] = {
++	{ "MICROCHIP_AR1021_I2C", 0 },
++	{ },
++};
++MODULE_DEVICE_TABLE(i2c, ar1021_i2c_id);
++
++static const struct of_device_id ar1021_i2c_of_match[] = {
++	{ .compatible = "microchip,ar1021-i2c", },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, ar1021_i2c_of_match);
++
++static struct i2c_driver ar1021_i2c_driver = {
++	.driver	= {
++		.name	= "ar1021_i2c",
++		.owner	= THIS_MODULE,
++		.pm	= &ar1021_i2c_pm,
++		.of_match_table = ar1021_i2c_of_match,
++	},
++
++	.probe		= ar1021_i2c_probe,
++	.id_table	= ar1021_i2c_id,
++};
++module_i2c_driver(ar1021_i2c_driver);
++
++MODULE_AUTHOR("Christian Gmeiner <christian.gmeiner@gmail.com>");
++MODULE_DESCRIPTION("Microchip AR1021 I2C Driver");
++MODULE_LICENSE("GPL");
++
+diff --git a/sound/soc/fsl/Kconfig b/sound/soc/fsl/Kconfig
+index 63fb12d..9051bcd 100644
+--- a/sound/soc/fsl/Kconfig
++++ b/sound/soc/fsl/Kconfig
+@@ -264,6 +264,18 @@ config SND_SOC_IMX_SII902X
+ 	 Say Y if you want to add support for SoC audio on an i.MX board with
+ 	 a sii902x.
+ 
++config SND_SOC_IMX_WM8731
++	tristate "SoC Audio support for i.MX boards with wm8731"
++	depends on OF && I2C
++	select SND_SOC_WM8731
++	select SND_SOC_IMX_PCM_DMA
++	select SND_SOC_IMX_AUDMUX
++	select SND_SOC_FSL_SSI
++	select SND_SOC_FSL_UTILS
++	help
++	  Say Y if you want to add support for SoC audio on an i.MX board with
++	  a wm8731 codec.
++
+ config SND_SOC_IMX_WM8958
+ 	tristate "SoC Audio support for i.MX boards with wm8958"
+ 	depends on OF && I2C
+diff --git a/sound/soc/fsl/Makefile b/sound/soc/fsl/Makefile
+index e29f6ec..0d4ac2b 100644
+--- a/sound/soc/fsl/Makefile
++++ b/sound/soc/fsl/Makefile
+@@ -55,6 +55,7 @@ snd-soc-mx27vis-aic32x4-objs := mx27vis-aic32x4.o
+ snd-soc-wm1133-ev1-objs := wm1133-ev1.o
+ snd-soc-imx-cs42888-objs := imx-cs42888.o
+ snd-soc-imx-sgtl5000-objs := imx-sgtl5000.o
++snd-soc-imx-wm8731-objs := imx-wm8731.o
+ snd-soc-imx-wm8958-objs := imx-wm8958.o
+ snd-soc-imx-wm8960-objs := imx-wm8960.o
+ snd-soc-imx-wm8962-objs := imx-wm8962.o
+@@ -71,6 +72,7 @@ obj-$(CONFIG_SND_SOC_MX27VIS_AIC32X4) += snd-soc-mx27vis-aic32x4.o
+ obj-$(CONFIG_SND_MXC_SOC_WM1133_EV1) += snd-soc-wm1133-ev1.o
+ obj-$(CONFIG_SND_SOC_IMX_CS42888) += snd-soc-imx-cs42888.o
+ obj-$(CONFIG_SND_SOC_IMX_SGTL5000) += snd-soc-imx-sgtl5000.o
++obj-$(CONFIG_SND_SOC_IMX_WM8731) += snd-soc-imx-wm8731.o
+ obj-${CONFIG_SND_SOC_IMX_WM8958} += snd-soc-imx-wm8958.o
+ obj-${CONFIG_SND_SOC_IMX_WM8960} += snd-soc-imx-wm8960.o
+ obj-$(CONFIG_SND_SOC_IMX_WM8962) += snd-soc-imx-wm8962.o
+diff --git a/sound/soc/fsl/imx-wm8731.c b/sound/soc/fsl/imx-wm8731.c
+new file mode 100644
+index 0000000..0e26127
+--- /dev/null
++++ b/sound/soc/fsl/imx-wm8731.c
+@@ -0,0 +1,472 @@
++/*
++ * Copyright (C) 2014 Freescale Semiconductor, Inc.
++ *
++ * Based on imx-sgtl5000.c
++ * Copyright (C) 2012 Freescale Semiconductor, Inc.
++ * Copyright (C) 2012 Linaro Ltd.
++ *
++ * The code contained herein is licensed under the GNU General Public
++ * License. You may obtain a copy of the GNU General Public License
++ * Version 2 or later at the following locations:
++ *
++ * http://www.opensource.org/licenses/gpl-license.html
++ * http://www.gnu.org/copyleft/gpl.html
++ */
++
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/i2c.h>
++#include <linux/clk.h>
++#include <sound/soc.h>
++#include <sound/pcm_params.h>
++#include <linux/mfd/syscon.h>
++
++#include "../codecs/wm8731.h"
++#include "imx-audmux.h"
++#include "imx-ssi.h"
++
++#define DAI_NAME_SIZE	32
++
++struct imx_wm8731_data {
++	struct snd_soc_dai_link dai;
++	struct snd_soc_card card;
++	char codec_dai_name[DAI_NAME_SIZE];
++	char platform_name[DAI_NAME_SIZE];
++	struct i2c_client *codec_dev;
++	struct clk *codec_clk;
++	long sysclk;
++};
++
++static int imx_wm8731_init(struct snd_soc_pcm_runtime *rtd);
++static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
++                                       struct snd_pcm_hw_params *params);
++
++struct imx_priv {
++	struct platform_device *pdev;
++	struct imx_wm8731_data *data;
++};
++
++static struct imx_priv card_priv;
++
++static struct snd_soc_ops imx_hifi_ops = {
++	.hw_params 	= imx_hifi_hw_params_slv_mode,
++};
++
++
++/* imx card dapm widgets */
++static const struct snd_soc_dapm_widget imx_dapm_widgets[] = {
++	SND_SOC_DAPM_HP("Headphone Jack",       NULL),
++	SND_SOC_DAPM_SPK("Ext Spk",             NULL),
++	SND_SOC_DAPM_LINE("Line Jack",          NULL),
++	SND_SOC_DAPM_MIC("Mic Jack",            NULL),
++};
++
++/* imx machine connections to the codec pins */
++static const struct snd_soc_dapm_route audio_map[] = {
++	{ "Headphone Jack",     NULL,   "LHPOUT" },
++	{ "Headphone Jack",     NULL,   "RHPOUT" },
++
++	{ "Ext Spk",            NULL,   "LOUT" },
++	{ "Ext Spk",            NULL,   "ROUT" },
++
++	{ "LLINEIN",            NULL,   "Line Jack" },
++	{ "RLINEIN",            NULL,   "Line Jack" },
++
++	{ "MICIN",              NULL,   "Mic Bias" },
++	{ "Mic Bias",           NULL,   "Mic Jack"},
++};
++
++
++static int imx_hifi_hw_params_slv_mode(struct snd_pcm_substream *substream,
++				       struct snd_pcm_hw_params *params)
++{
++	struct snd_soc_pcm_runtime *rtd = substream->private_data;
++	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
++	struct snd_soc_dai *codec_dai = rtd->codec_dai;
++	struct snd_soc_card *card = codec_dai->codec->card;
++	struct imx_wm8731_data *data = snd_soc_card_get_drvdata(card);
++	
++	u32 dai_format;
++	snd_pcm_format_t sample_format;
++	unsigned int channels;
++	unsigned int tx_mask, rx_mask;
++	unsigned int sampling_rate;
++	unsigned int div_2, div_psr, div_pm;
++	int ret;
++
++	sampling_rate = params_rate(params);
++	sample_format = params_format(params);
++	
++	channels = params_channels(params);
++/*	printk("%s:%s  sampling rate = %u  channels = %u \n", __FUNCTION__,
++		   (substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? "Playback" : "Capture"),
++		   sampling_rate, channels);*/
++
++	/* set CPU DAI configuration */
++	switch (sampling_rate) {
++		case 8000:
++		case 32000:
++		case 48000:
++		case 96000:
++			data->sysclk = 12288000;
++			break;
++
++		case 44100:
++		case 88200:
++			data->sysclk = 11289600;
++			break;
++
++		default:
++			return -EINVAL;
++	}
++
++	dai_format = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_IF |
++		SND_SOC_DAIFMT_CBS_CFS;
++
++	ret = snd_soc_dai_set_fmt(cpu_dai, dai_format);
++	if (ret < 0)
++		return ret;
++
++	/* set i.MX active slot mask */
++	/* S[TR]CCR:DC */
++	tx_mask = ~((1 << channels) - 1);
++	rx_mask = tx_mask;
++	snd_soc_dai_set_tdm_slot(cpu_dai, tx_mask, rx_mask, 2, 32);
++
++	/*
++	 * SSI sysclk divider:
++	 * div_2:	/1 or /2
++	 * div_psr:	/1 or /8
++	 * div_pm:	/1 .. /256
++	 */
++	div_2	= 0;
++	div_psr	= 0;
++	switch (sampling_rate) {
++		case 8000:
++			// 1x1x12
++			div_pm	= 11;
++			break;
++		case 32000:
++			// 1x1x3
++			div_pm	= 2;
++			break;
++		case 48000:
++			// 1x1x2
++			div_pm	= 1;
++			break;
++		case 96000:
++			// 1x1x1
++			div_pm	= 0;
++			break;
++		case 44100:
++			// 1x1x2
++			div_pm	= 1;
++			break;
++		case 88200:
++			// 1x1x1
++			div_pm	= 0;
++			break;
++		default:
++			return -EINVAL;
++	}
++
++	/* sync mode: a single clock controls both playback and capture */
++	snd_soc_dai_set_clkdiv(cpu_dai, IMX_SSI_TX_DIV_2, (div_2 ? SSI_STCCR_DIV2 : 0));
++	snd_soc_dai_set_clkdiv(cpu_dai, IMX_SSI_TX_DIV_PSR, (div_psr ? SSI_STCCR_PSR : 0));
++	snd_soc_dai_set_clkdiv(cpu_dai, IMX_SSI_TX_DIV_PM, div_pm);
++
++	/* set codec DAI configuration */
++	dai_format = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
++		SND_SOC_DAIFMT_CBS_CFS;
++
++	ret = snd_soc_dai_set_fmt(codec_dai, dai_format);
++	if (ret < 0)
++		return ret;
++
++	ret = snd_soc_dai_set_sysclk(codec_dai,
++				     WM8731_SYSCLK_MCLK,
++				     data->sysclk,
++				     SND_SOC_CLOCK_IN);
++
++	if (ret < 0) {
++		pr_err("Failed to set codec master clock to %lu: %d \n",
++		       data->sysclk, ret);
++		return ret;
++	}
++
++	return 0;
++}
++
++static int imx_wm8731_init(struct snd_soc_pcm_runtime *rtd)
++{
++	int ret = 0;
++	struct snd_soc_codec *codec = rtd->codec;
++
++	/* Add imx specific widgets */
++	ret = snd_soc_dapm_new_controls(&codec->dapm, imx_dapm_widgets,
++									ARRAY_SIZE(imx_dapm_widgets));
++	if (ret)
++			goto out_retcode;
++
++	/* Set up imx specific audio path audio_map */
++	ret = snd_soc_dapm_add_routes(&codec->dapm, audio_map, ARRAY_SIZE(audio_map));
++	if (ret)
++			goto out_retcode;
++
++	ret = snd_soc_dapm_enable_pin(&codec->dapm, "Headphone Jack");
++	if (ret)
++			goto out_retcode;
++
++	ret = snd_soc_dapm_nc_pin(&codec->dapm, "Ext Spk");
++	if (ret)
++			goto out_retcode;
++
++out_retcode:
++
++	if (ret)
++			pr_err("%s: failed with error code: %d \n", __FUNCTION__, ret);
++	else
++			pr_info("%s: success \n", __FUNCTION__);
++
++	return ret;
++}
++
++/**
++ * Configure AUDMUX interconnection between
++ * _slave (CPU side) and _master (codec size)
++ *
++ * When SSI operates in master mode, 5-wire interconnect with
++ * audio codec is required:
++ * TXC  - BCLK
++ * TXD  - DAC data
++ * RXD  - ADC data
++ * TXFS - {DAC|ADC}LRC, i.e. word clock
++ * RXC  - MCLK, i.e. oversampling clock
++ * Audmux is operated in asynchronous mode to enable 6-wire
++ * interface (as opposed to 4-wire interface in sync mode).
++ */
++static int imx_audmux_config_slv_mode(int _slave, int _master)
++{
++	unsigned int ptcr, pdcr;
++	int slave = _slave - 1;
++	int master = _master - 1;
++
++	ptcr = IMX_AUDMUX_V2_PTCR_SYN |
++		IMX_AUDMUX_V2_PTCR_TFSDIR |
++		IMX_AUDMUX_V2_PTCR_TFSEL(slave) |
++		IMX_AUDMUX_V2_PTCR_RCLKDIR |
++		IMX_AUDMUX_V2_PTCR_RCSEL(slave | 0x8) |
++		IMX_AUDMUX_V2_PTCR_TCLKDIR |
++		IMX_AUDMUX_V2_PTCR_TCSEL(slave);
++
++	pdcr = IMX_AUDMUX_V2_PDCR_RXDSEL(slave);
++	imx_audmux_v2_configure_port(master, ptcr, pdcr);
++	ptcr = ptcr & ~IMX_AUDMUX_V2_PTCR_SYN;
++	imx_audmux_v2_configure_port(master, ptcr, pdcr);
++
++	ptcr = IMX_AUDMUX_V2_PTCR_SYN |
++		IMX_AUDMUX_V2_PTCR_RCLKDIR |
++		IMX_AUDMUX_V2_PTCR_RCSEL(master | 0x8) |
++		IMX_AUDMUX_V2_PTCR_TCLKDIR |
++		IMX_AUDMUX_V2_PTCR_TCSEL(master);
++
++	pdcr = IMX_AUDMUX_V2_PDCR_RXDSEL(master);
++	imx_audmux_v2_configure_port(slave, ptcr, pdcr);
++	ptcr = ptcr & ~IMX_AUDMUX_V2_PTCR_SYN;
++	imx_audmux_v2_configure_port(slave, ptcr, pdcr);
++
++	return 0;
++}
++
++
++static int imx_wm8731_probe(struct platform_device *pdev)
++{
++	struct device_node *ssi_np, *codec_np;
++	struct platform_device *ssi_pdev;
++	struct imx_priv *priv = &card_priv;
++	struct i2c_client *codec_dev;
++	struct imx_wm8731_data *data;
++	unsigned int src_port, ext_port;
++
++	int ret;
++	u32 out_val[3];
++	phandle phandle;
++	struct regmap *gpr;
++	struct device_node *node;
++
++	priv->pdev = pdev;
++	
++	ssi_np = of_parse_phandle(pdev->dev.of_node, "ssi-controller", 0);
++	codec_np = of_parse_phandle(pdev->dev.of_node, "audio-codec", 0);
++	if (!ssi_np || !codec_np) {
++		dev_err(&pdev->dev, "phandle missing or invalid\n");
++		ret = -EINVAL;
++		goto fail;
++	}
++
++	ssi_pdev = of_find_device_by_node(ssi_np);
++	if (!ssi_pdev) {
++		dev_err(&pdev->dev, "failed to find SSI platform device\n");
++		ret = -EINVAL;
++		goto fail;
++	}
++        
++	codec_dev = of_find_i2c_device_by_node(codec_np);
++	if (!codec_dev) {
++		dev_err(&pdev->dev, "failed to find codec platform device\n");
++		ret = -EINVAL;
++		goto fail;
++	}
++
++	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
++	if (!data) {
++		ret = -ENOMEM;
++		goto fail;
++	}
++
++	do {
++		ret = of_property_read_u32_array(pdev->dev.of_node, "gpr", out_val, 3);
++		if (ret) break;
++
++		phandle = *out_val;
++		node = of_find_node_by_phandle(phandle);
++		if (!node) break;
++
++		gpr = syscon_node_to_regmap(node);
++		if (IS_ERR(gpr)) break;
++
++		of_node_put(node);
++
++		/*
++		 * set SAI2_MCLK_DIR to enable codec MCLK
++		 * out_val[1] is the register offset
++		 * out_val[2] is the bit field
++		 */
++		regmap_update_bits(gpr, out_val[1], (1<<out_val[2]), (1<<out_val[2]));
++
++
++	} while(0);
++
++	card_priv.data = data;
++
++	data->codec_dev = codec_dev;
++
++	data->codec_clk = devm_clk_get(&codec_dev->dev, NULL);
++	if (IS_ERR(data->codec_clk)) {
++		ret = PTR_ERR(data->codec_clk);
++		dev_err(&codec_dev->dev, "failed to get codec clk: %d\n", ret);
++		goto fail;	
++	}
++
++//	data->clk_frequency = clk_get_rate(data->codec_clk);	
++	ret = clk_prepare_enable(data->codec_clk);
++
++	if (ret) {
++		dev_err(&codec_dev->dev, "failed to enable codec clk: %d\n", ret);
++		goto fail;
++	}
++
++	data->dai.name = "HiFi";
++	data->dai.stream_name = "HiFi";
++	data->dai.codec_dai_name = "wm8731-hifi";
++	data->dai.codec_of_node = codec_np;
++	data->dai.cpu_dai_name = dev_name(&ssi_pdev->dev);
++	data->dai.platform_of_node = ssi_np;
++	data->dai.ops = &imx_hifi_ops;
++	data->dai.init = &imx_wm8731_init;
++	
++	ret = of_property_read_u32(pdev->dev.of_node, "src-port", &src_port);
++	if (ret) {
++		dev_err(&pdev->dev, "failed to get \"src-port\" value\n");
++		ret = -EINVAL;
++		goto clk_fail;
++	}
++
++	ret = of_property_read_u32(pdev->dev.of_node, "ext-port", &ext_port);
++	if (ret) {
++		dev_err(&pdev->dev, "failed to get \"ext-port\" value\n");
++		ret = -EINVAL;
++		goto clk_fail;
++	}
++
++	imx_audmux_config_slv_mode(src_port, ext_port);
++
++	
++	data->card.dev = &pdev->dev;
++	ret = snd_soc_of_parse_card_name(&data->card, "model");
++	if (ret)
++		goto clk_fail;
++	
++	ret = snd_soc_of_parse_audio_routing(&data->card, "audio-routing");
++	if (ret)
++		goto clk_fail;
++
++
++	data->card.num_links = 1;
++	data->card.dai_link = &data->dai;
++
++	data->card.dapm_widgets = imx_dapm_widgets;
++	data->card.num_dapm_widgets = ARRAY_SIZE(imx_dapm_widgets);
++
++	platform_set_drvdata(pdev, &data->card);
++	snd_soc_card_set_drvdata(&data->card, data);
++
++	ret = snd_soc_register_card(&data->card);
++	if (ret) {
++		dev_err(&pdev->dev, "snd_soc_register_card failed (%d)\n", ret);
++		goto clk_fail;
++
++	}
++	
++	return 0;
++
++clk_fail:
++	clk_disable_unprepare(data->codec_clk);
++
++fail:
++
++	if (ssi_np)
++		of_node_put(ssi_np);
++
++	if (codec_np)
++		of_node_put(codec_np);
++
++	return ret;
++}
++
++static int imx_wm8731_remove(struct platform_device *pdev)
++{
++	struct snd_soc_card *card = platform_get_drvdata(pdev);
++	struct imx_wm8731_data *data = snd_soc_card_get_drvdata(card);
++ 
++	if (!IS_ERR(data->codec_clk))
++		clk_disable_unprepare(data->codec_clk);
++
++	snd_soc_unregister_card(card);
++
++	return 0;
++}
++
++static const struct of_device_id imx_wm8731_dt_ids[] = {
++	{ .compatible = "fsl,imx-audio-wm8731", },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, imx_wm8731_dt_ids);
++
++static struct platform_driver imx_wm8731_driver = {
++	.driver = {
++		.name = "imx-wm8731",
++		.owner = THIS_MODULE,
++		.of_match_table = imx_wm8731_dt_ids,
++	},
++	.probe = imx_wm8731_probe,
++	.remove = imx_wm8731_remove,
++};
++module_platform_driver(imx_wm8731_driver);
++
++MODULE_AUTHOR("Freescale Semiconductor, Inc.");
++MODULE_DESCRIPTION("Freescale i.MX WM8731 ASoC machine driver");
++MODULE_LICENSE("GPL v2");
++MODULE_ALIAS("platform:imx-wm8731");
++
+-- 
+1.9.1
+
