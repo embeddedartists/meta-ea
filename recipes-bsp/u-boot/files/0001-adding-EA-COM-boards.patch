@@ -647,10 +647,10 @@ index 0000000..707cbd0
 +#endif
 diff --git a/board/embeddedartists/mx6qea-com/mx6qea-com.c b/board/embeddedartists/mx6qea-com/mx6qea-com.c
 new file mode 100644
-index 0000000..30d2fb6
+index 0000000..7123259
 --- /dev/null
 +++ b/board/embeddedartists/mx6qea-com/mx6qea-com.c
-@@ -0,0 +1,1480 @@
+@@ -0,0 +1,1626 @@
 +/*
 + * Copyright (C) 2012-2014 Freescale Semiconductor, Inc.
 + *
@@ -867,10 +867,36 @@ index 0000000..30d2fb6
 +	imx_iomux_v3_setup_multiple_pads(pcie_pads, ARRAY_SIZE(pcie_pads));
 +}
 +
-+iomux_v3_cfg_t const di0_pads[] = {
++iomux_v3_cfg_t const rgb_pads[] = {
 +	MX6_PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK,	/* DISP0_CLK */
++	MX6_PAD_DI0_PIN15__IPU1_DI0_PIN15,
 +	MX6_PAD_DI0_PIN2__IPU1_DI0_PIN02,		/* DISP0_HSYNC */
 +	MX6_PAD_DI0_PIN3__IPU1_DI0_PIN03,		/* DISP0_VSYNC */
++	MX6_PAD_DI0_PIN4__IPU1_DI0_PIN04,
++	MX6_PAD_DISP0_DAT0__IPU1_DISP0_DATA00,
++	MX6_PAD_DISP0_DAT1__IPU1_DISP0_DATA01,
++	MX6_PAD_DISP0_DAT2__IPU1_DISP0_DATA02,
++	MX6_PAD_DISP0_DAT3__IPU1_DISP0_DATA03,
++	MX6_PAD_DISP0_DAT4__IPU1_DISP0_DATA04,
++	MX6_PAD_DISP0_DAT5__IPU1_DISP0_DATA05,
++	MX6_PAD_DISP0_DAT6__IPU1_DISP0_DATA06,
++	MX6_PAD_DISP0_DAT7__IPU1_DISP0_DATA07,
++	MX6_PAD_DISP0_DAT8__IPU1_DISP0_DATA08,
++	MX6_PAD_DISP0_DAT9__IPU1_DISP0_DATA09,
++	MX6_PAD_DISP0_DAT10__IPU1_DISP0_DATA10,
++	MX6_PAD_DISP0_DAT11__IPU1_DISP0_DATA11,
++	MX6_PAD_DISP0_DAT12__IPU1_DISP0_DATA12,
++	MX6_PAD_DISP0_DAT13__IPU1_DISP0_DATA13,
++	MX6_PAD_DISP0_DAT14__IPU1_DISP0_DATA14,
++	MX6_PAD_DISP0_DAT15__IPU1_DISP0_DATA15,
++	MX6_PAD_DISP0_DAT16__IPU1_DISP0_DATA16,
++	MX6_PAD_DISP0_DAT17__IPU1_DISP0_DATA17,
++	MX6_PAD_DISP0_DAT18__IPU1_DISP0_DATA18,
++	MX6_PAD_DISP0_DAT19__IPU1_DISP0_DATA19,
++	MX6_PAD_DISP0_DAT20__IPU1_DISP0_DATA20,
++	MX6_PAD_DISP0_DAT21__IPU1_DISP0_DATA21,
++	MX6_PAD_DISP0_DAT22__IPU1_DISP0_DATA22,
++	MX6_PAD_DISP0_DAT23__IPU1_DISP0_DATA23,
 +};
 +
 +#if defined(CONFIG_MX6DL) && defined(CONFIG_MXC_EPDC)
@@ -1667,10 +1693,89 @@ index 0000000..30d2fb6
 +	writel(reg, &iomux->gpr[2]);
 +}
 +
++static iomux_v3_cfg_t const display_ctrl_pads[] = {
++	/* Display enable for LVDS0 and Parallel RGB */
++	MX6_PAD_EIM_BCLK__GPIO6_IO31 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define DISPENABLE_GP_LVDS0_RGB  IMX_GPIO_NR(6, 31)
++
++	/* Display enable for LVDS1 */
++	MX6_PAD_EIM_D20__GPIO3_IO20 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define DISPENABLE_GP_LVDS1  IMX_GPIO_NR(3, 20)
++
++
++	/* LVDS0 and LVDS1 Brightness (gpio instead of PWM1, duty cycle = period) */
++	MX6_PAD_SD1_DAT3__GPIO1_IO21 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BRIGHTNESS_GP_LVDSx  IMX_GPIO_NR(1, 21)
++	
++	/* Parallel RGB Brightness (gpio instead of PWM2, duty cycle = period) */
++	MX6_PAD_SD1_DAT2__GPIO1_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BRIGHTNESS_GP_RGB  IMX_GPIO_NR(1, 19)
++	
++
++	/* Backlight Power Enable for LVDS0 and Parallel RGB */
++	MX6_PAD_EIM_WAIT__GPIO5_IO00 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BACKLIGHT_GP_LVDS0_RGB  IMX_GPIO_NR(5, 0)
++	
++	/* Backlight Power Enable for LVDS1 */
++	MX6_PAD_EIM_LBA__GPIO2_IO27 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BACKLIGHT_GP_LVDS1  IMX_GPIO_NR(2, 27)
++};
++
++static void do_enable_lvds0(struct display_info_t const *dev)
++{
++	/* Default is lvds1 so change that to lvds0 */
++	struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
++
++	int reg = readl(&iomux->gpr[2]);
++
++	reg &= ~(IOMUXC_GPR2_LVDS_CH0_MODE_MASK |
++		 IOMUXC_GPR2_LVDS_CH1_MODE_MASK);
++	reg |= (IOMUXC_GPR2_LVDS_CH0_MODE_ENABLED_DI0 |
++		IOMUXC_GPR2_LVDS_CH1_MODE_DISABLED);
++
++	writel(reg, &iomux->gpr[2]);
++
++	reg = readl(&iomux->gpr[3]);
++	reg &= ~(IOMUXC_GPR3_LVDS0_MUX_CTL_MASK |
++		 IOMUXC_GPR3_LVDS1_MUX_CTL_MASK |
++		 IOMUXC_GPR3_HDMI_MUX_CTL_MASK);
++	reg |= (IOMUXC_GPR3_MUX_SRC_IPU1_DI0
++	       << IOMUXC_GPR3_LVDS0_MUX_CTL_OFFSET);
++
++	writel(reg, &iomux->gpr[3]);
++
++	/* Now change pinning as well */
++	gpio_direction_output(DISPENABLE_GP_LVDS0_RGB, 1);
++	gpio_direction_output(BRIGHTNESS_GP_LVDSx, 1);
++	gpio_direction_output(BRIGHTNESS_GP_RGB, 0);
++	gpio_direction_output(BACKLIGHT_GP_LVDS0_RGB, 1);
++}
++
++static void do_enable_lvds1(struct display_info_t const *dev)
++{
++	/* Default interface so only pinning is needed */
++	gpio_direction_output(DISPENABLE_GP_LVDS1, 1);
++	gpio_direction_output(BRIGHTNESS_GP_LVDSx, 1);
++	gpio_direction_output(BACKLIGHT_GP_LVDS1, 1);
++}
++
 +static void do_enable_hdmi(struct display_info_t const *dev)
 +{
++	/* Default is lvds1 so disable it */
 +	disable_lvds(dev);
 +	imx_enable_hdmi_phy();
++}
++
++static void do_enable_parallel_rgb(struct display_info_t const *dev)
++{
++	/* Setup pads for RGB */
++	imx_iomux_v3_setup_multiple_pads(rgb_pads, ARRAY_SIZE(rgb_pads));
++
++	/* Default interface is LVDS1 so pinning must be changed */
++	gpio_direction_output(DISPENABLE_GP_LVDS0_RGB, 1);
++	gpio_direction_output(BRIGHTNESS_GP_LVDSx, 0);
++	gpio_direction_output(BRIGHTNESS_GP_RGB, 1);
++	gpio_direction_output(BACKLIGHT_GP_LVDS0_RGB, 1);
 +}
 +
 +static struct display_info_t const displays[] = {{
@@ -1678,9 +1783,29 @@ index 0000000..30d2fb6
 +	.addr	= 0,
 +	.pixfmt	= IPU_PIX_FMT_RGB666,
 +	.detect	= NULL,
-+	.enable	= NULL,
++	.enable	= do_enable_lvds1,
 +	.mode	= {
-+		.name           = "Hannstar-XGA",
++		.name           = "Hannstar-XGA-LVDS1",
++		.refresh        = 60,
++		.xres           = 1024,
++		.yres           = 768,
++		.pixclock       = 15385,
++		.left_margin    = 220,
++		.right_margin   = 40,
++		.upper_margin   = 21,
++		.lower_margin   = 7,
++		.hsync_len      = 60,
++		.vsync_len      = 10,
++		.sync           = FB_SYNC_EXT,
++		.vmode          = FB_VMODE_NONINTERLACED
++} }, {
++	.bus	= -1,
++	.addr	= 0,
++	.pixfmt	= IPU_PIX_FMT_RGB666,
++	.detect	= NULL,
++	.enable	= do_enable_lvds0,
++	.mode	= {
++		.name           = "Hannstar-XGA-LVDS0",
 +		.refresh        = 60,
 +		.xres           = 1024,
 +		.yres           = 768,
@@ -1711,6 +1836,26 @@ index 0000000..30d2fb6
 +		.lower_margin   = 10,
 +		.hsync_len      = 96,
 +		.vsync_len      = 2,
++		.sync           = 0,
++		.vmode          = FB_VMODE_NONINTERLACED
++} }, {
++	.bus	= -1,
++	.addr	= 0,
++	.pixfmt	= IPU_PIX_FMT_RGB24,
++	.detect	= NULL,
++	.enable	= do_enable_parallel_rgb,
++	.mode	= {
++		.name           = "Innolux-AT070TN",
++		.refresh        = 60,
++		.xres           = 800,
++		.yres           = 480,
++		.pixclock       = 29850,
++		.left_margin    = 89,
++		.right_margin   = 164,
++		.upper_margin   = 75,
++		.lower_margin   = 75,
++		.hsync_len      = 10,
++		.vsync_len      = 10,
 +		.sync           = 0,
 +		.vmode          = FB_VMODE_NONINTERLACED
 +} } };
@@ -1767,9 +1912,6 @@ index 0000000..30d2fb6
 +	struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
 +	int reg;
 +
-+	/* Setup HSYNC, VSYNC, DISP_CLK for debugging purposes */
-+	imx_iomux_v3_setup_multiple_pads(di0_pads, ARRAY_SIZE(di0_pads));
-+
 +	enable_ipu_clock();
 +	imx_setup_hdmi();
 +
@@ -1814,6 +1956,10 @@ index 0000000..30d2fb6
 +	    | (IOMUXC_GPR3_MUX_SRC_IPU1_DI0
 +	       << IOMUXC_GPR3_LVDS1_MUX_CTL_OFFSET);
 +	writel(reg, &iomux->gpr[3]);
++
++	/* DisplayEnable, BacklightEnable, Brightness controls for RGB, LVDS0 and LVDS1 */
++	imx_iomux_v3_setup_multiple_pads(display_ctrl_pads,
++					ARRAY_SIZE(display_ctrl_pads));
 +}
 +#endif /* CONFIG_VIDEO_IPUV3 */
 +

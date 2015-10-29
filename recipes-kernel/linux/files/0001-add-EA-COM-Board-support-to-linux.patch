@@ -13,11 +13,11 @@ index 699bf8f..07e691e 100644
  dtb-$(CONFIG_ARCH_MXS) += imx23-evk.dtb \
  	imx23-olinuxino.dtb \
 diff --git a/arch/arm/boot/dts/imx6qea-com-kit.dts b/arch/arm/boot/dts/imx6qea-com-kit.dts
-new file mode 100755
-index 0000000..f8cd17b
+new file mode 100644
+index 0000000..3180bdf
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6qea-com-kit.dts
-@@ -0,0 +1,561 @@
+@@ -0,0 +1,685 @@
 +/*
 + * Copyright 2012 Freescale Semiconductor, Inc.
 + * Copyright 2011 Linaro Ltd.
@@ -72,9 +72,9 @@ index 0000000..f8cd17b
 +		};
 +
 +		/* For uSD/MMC socket on EA COM Base Board */
-+		reg_vcc_sd2: vcc_sd2 {
++		reg_vcc_sd2: regulator@2 {
 +			compatible = "regulator-fixed";
-+			reg = <0>;
++			reg = <2>;
 +			pinctrl-names = "default";
 +			pinctrl-0 = <&pinctrl_vcc_sd2>;
 +			regulator-name = "VCC_SD2";
@@ -82,6 +82,38 @@ index 0000000..f8cd17b
 +			regulator-max-microvolt = <3000000>;
 +			gpio = <&gpio7 8 GPIO_ACTIVE_HIGH>;
 +			enable-active-high;
++		};
++
++		reg_lcd_3v3: regulator@3 {
++			compatible = "regulator-fixed";
++			reg = <3>;
++			regulator-name = "lcd-3v3";
++			regulator-min-microvolt = <3300000>;
++			regulator-max-microvolt = <3300000>;
++			gpio = <&gpio6 31 GPIO_ACTIVE_HIGH>;
++			enable-active-high;
++			regulator-always-on;
++		};
++
++		reg_vcc_can: regulator@4 {
++			compatible = "regulator-fixed";
++			reg = <4>;
++			regulator-name = "VCC_CAN";
++			regulator-min-microvolt = <5000000>;
++			regulator-max-microvolt = <5000000>;
++			regulator-always-on;
++			/*regulator-boot-on;*/
++		};
++
++		reg_lcd_backlight: regulator@5 {
++			compatible = "regulator-fixed";
++			reg = <5>;
++			regulator-name = "lcd-backlight";
++			regulator-min-microvolt = <3300000>;
++			regulator-max-microvolt = <3300000>;
++			gpio = <&gpio5 0 GPIO_ACTIVE_HIGH>;
++			enable-active-high;
++			regulator-always-on;
 +		};
 +	};
 +
@@ -126,9 +158,9 @@ index 0000000..f8cd17b
 +	mxcfb3: fb@2 {
 +		compatible = "fsl,mxc_sdc_fb";
 +		disp_dev = "lcd";
-+		interface_pix_fmt = "RGB565";
-+		mode_str ="CLAA-WVGA";
-+		default_bpp = <16>;
++		interface_pix_fmt = "RGB24";
++		mode_str ="EA7-WVGA";
++		default_bpp = <32>;
 +		int_clk = <0>;
 +		late_init = <0>;
 +		status = "disabled";
@@ -148,17 +180,29 @@ index 0000000..f8cd17b
 +		compatible = "fsl,lcd";
 +		ipu_id = <0>;
 +		disp_id = <0>;
-+		default_ifmt = "RGB565";
++		lcd-supply = <&reg_lcd_3v3>;
++		default_ifmt = "RGB24";
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_ipu1>;
 +		status = "okay";
 +	};
 +
-+	backlight {
++	/* Backlight for LVDS 0 and 1 */
++	backlight_lvds {
++		compatible = "pwm-backlight";
++		pwms = <&pwm1 0 5000000>;
++		brightness-levels = <0 4 8 16 32 64 128 255>;
++		default-brightness-level = <7>;
++		status = "okay";
++	};
++
++	/* Backlight for RGB */
++	backlight_lcd {
 +		compatible = "pwm-backlight";
 +		pwms = <&pwm2 0 5000000>;
 +		brightness-levels = <0 4 8 16 32 64 128 255>;
 +		default-brightness-level = <7>;
++		enble-gpios = <&gpio5 0 GPIO_ACTIVE_HIGH>;
 +		status = "okay";
 +	};
 +
@@ -219,31 +263,41 @@ index 0000000..f8cd17b
 +};
 +
 +&i2c2 {
-+
++	/* Touch controller for display on LVDS1 connector */
 +	egalax_ts@04 {
 +		compatible = "eeti,egalax_ts";
 +		reg = <0x04>;
-+		interrupt-parent = <&gpio3>;
-+		interrupts = <3 2>;
-+		wakeup-gpios = <&gpio3 13 0>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_egalax_lvds1_int>;
++		interrupt-parent = <&gpio2>;
++		interrupts = <31 IRQ_TYPE_EDGE_FALLING>;
++		wakeup-gpios = <&gpio2 31 GPIO_ACTIVE_HIGH>;
 +	};
 +};
 +
 +&i2c3 {
-+
++	/* Touch controller for display on LVDS0 connector */
 +	egalax_ts@04 {
 +		compatible = "eeti,egalax_ts";
 +		reg = <0x04>;
-+		interrupt-parent = <&gpio2>;
-+		interrupts = <2 2>;
-+		wakeup-gpios = <&gpio2 31 0>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_egalax_lvds0_int>;
++		interrupt-parent = <&gpio3>;
++		interrupts = <13 IRQ_TYPE_EDGE_FALLING>;
++		wakeup-gpios = <&gpio3 13 GPIO_ACTIVE_HIGH>;
++	};
++
++	hdmi: edid@50 {
++		compatible = "fsl,imx6-hdmi-i2c";
++		reg = <0x50>;
 +	};
 +};
 +
 +
 +&iomuxc {
++	pinctrl-0 = <&pinctrl_hog>, <&pinctrl_can_gpios>, <&pinctrl_lcd_gpios>;
 +
-+	imx6qdl-sabresd {
++	imx6qea-com-kit {
 +
 +		pinctrl_audmux: audmuxgrp {
 +			fsl,pins = <
@@ -259,7 +313,19 @@ index 0000000..f8cd17b
 +			fsl,pins = <
 +				MX6QDL_PAD_EIM_A20__GPIO2_IO18          0x1f0b0
 +			>;
-+		};		
++		};
++
++		pinctrl_egalax_lvds0_int: egalax_lvds0_intgrp {
++			fsl,pins = <
++				MX6QDL_PAD_EIM_DA13__GPIO3_IO13		0x1f0b0
++			>;
++		};
++
++		pinctrl_egalax_lvds1_int: egalax_lvds1_intgrp {
++			fsl,pins = <
++				MX6QDL_PAD_EIM_EB3__GPIO2_IO31		0x1f0b0
++			>;
++		};
 +
 +		pinctrl_hdmi_cec: hdmicecgrp {
 +			fsl,pins = <
@@ -331,6 +397,12 @@ index 0000000..f8cd17b
 +			>;
 +		};
 +
++		pinctrl_pwm2: pwm2grp {
++			fsl,pins = <
++				MX6QDL_PAD_SD1_DAT2__PWM2_OUT		0x1b0b1
++			>;
++		};
++
 +		pinctrl_uart1: uart1grp {
 +			fsl,pins = <
 +				MX6QDL_PAD_CSI0_DAT10__UART1_TX_DATA	0x1b0b1
@@ -381,7 +453,34 @@ index 0000000..f8cd17b
 +				MX6QDL_PAD_SD3_RST__GPIO7_IO08			0x17059
 +			>;
 +		};
-+	};
++
++		pinctrl_can_gpios: can-gpios {
++			fsl,pins = <
++				MX6QDL_PAD_NANDF_CS0__GPIO6_IO11	0x17059
++			>;
++		}; 
++
++		pinctrl_flexcan1: flexcan1grp {
++			fsl,pins = <
++				MX6QDL_PAD_KEY_ROW2__FLEXCAN1_RX	0x1b020
++				MX6QDL_PAD_KEY_COL2__FLEXCAN1_TX	0x1b020
++			>;
++		};
++
++		pinctrl_flexcan2: flexcan2grp {
++			fsl,pins = <
++				MX6QDL_PAD_KEY_ROW4__FLEXCAN2_RX	0x1b020
++				MX6QDL_PAD_KEY_COL4__FLEXCAN2_TX	0x1b020
++			>;
++		};
++
++		pinctrl_lcd_gpios: lcd-gpios {
++			fsl,pins = <
++				MX6QDL_PAD_EIM_BCLK__GPIO6_IO31		0x17059
++				MX6QDL_PAD_EIM_WAIT__GPIO5_IO00		0x17059
++			>;
++		};
++ 	};
 +};
 +
 +&dcic1 {
@@ -409,7 +508,7 @@ index 0000000..f8cd17b
 +
 +&hdmi_core {
 +	ipu_id = <0>;
-+	disp_id = <0>;
++	disp_id = <1>;
 +	status = "okay";
 +};
 +
@@ -474,11 +573,12 @@ index 0000000..f8cd17b
 +	lanes = <2>;
 +};
 +
++/* mipi_dsi has the same ip_id/disp_id as the hdmi_core so only enble one of the */
 +&mipi_dsi {
 +	dev_id = <0>;
 +	disp_id = <1>;
 +	lcd_panel = "TRULY-WVGA";
-+	status = "okay";
++	status = "disabled";
 +};
 +
 +&pcie {
@@ -489,6 +589,12 @@ index 0000000..f8cd17b
 +&pwm1 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_pwm1>;
++	status = "okay";
++};
++
++&pwm2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_pwm2>;
 +	status = "okay";
 +};
 +
@@ -546,7 +652,7 @@ index 0000000..f8cd17b
 +};
 +
 +&wdog2 {
-+	status = "disable";
++	status = "disabled";
 +};
 +
 +
@@ -579,9 +685,27 @@ index 0000000..f8cd17b
 +&sata {
 +	status = "okay";
 +};
++
++&flexcan1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan1>;
++	xceiver-supply = <&reg_vcc_can>; 
++	trx-en-gpio = <&gpio6 11 GPIO_ACTIVE_LOW>;
++	status = "okay";
++};
++
++&flexcan2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan2>;
++	xceiver-supply = <&reg_vcc_can>; 
++	trx-en-gpio = <&gpio6 11 GPIO_ACTIVE_LOW>;
++	status = "okay";
++};
++
++
 diff --git a/arch/arm/boot/dts/imx6qea-com.dtsi b/arch/arm/boot/dts/imx6qea-com.dtsi
-new file mode 100755
-index 0000000..49869c8
+new file mode 100644
+index 0000000..c7083f6
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6qea-com.dtsi
 @@ -0,0 +1,302 @@
@@ -858,7 +982,7 @@ index 0000000..49869c8
 +
 +		pinctrl_i2c3: i2c3grp {
 +			fsl,pins = <
-+				MX6QDL_PAD_GPIO_3__I2C3_SCL		0x4001b8b1
++				MX6QDL_PAD_GPIO_5__I2C3_SCL		0x4001b8b1
 +				MX6QDL_PAD_GPIO_6__I2C3_SDA		0x4001b8b1
 +			>;
 +		};
@@ -1996,6 +2120,69 @@ index 0000000..a2990d7
 +
 +	};
 +};
+diff --git a/arch/arm/mach-imx/mach-imx6q.c b/arch/arm/mach-imx/mach-imx6q.c
+index 30a4aef..d59f16f 100644
+--- a/arch/arm/mach-imx/mach-imx6q.c
++++ b/arch/arm/mach-imx/mach-imx6q.c
+@@ -136,6 +136,48 @@ static int __init imx6q_flexcan_fixup_auto(void)
+ 	return 0;
+ }
+ 
++static void mx6qea_flexcan_switch(void)
++{
++	/* Polarity is inverted on the COM Carrier Board rev A */
++	if (flexcan0_en || flexcan1_en) {
++		gpio_set_value_cansleep(flexcan_en_gpio, 1);
++		gpio_set_value_cansleep(flexcan_en_gpio, 0);
++	} else {
++		gpio_set_value_cansleep(flexcan_en_gpio, 1);
++	}
++}
++
++static void imx6qea_flexcan0_switch_auto(int enable)
++{
++	flexcan0_en = enable;
++	mx6qea_flexcan_switch();
++}
++
++static void imx6qea_flexcan1_switch_auto(int enable)
++{
++	flexcan1_en = enable;
++	mx6qea_flexcan_switch();
++}
++
++static int __init imx6qea_flexcan_fixup_auto(void)
++{
++	struct device_node *np;
++
++	np = of_find_node_by_path("/soc/aips-bus@02000000/can@02090000");
++	if (!np)
++		return -ENODEV;
++
++	flexcan_en_gpio = of_get_named_gpio(np, "trx-en-gpio", 0);
++	if (gpio_is_valid(flexcan_en_gpio) &&
++		!gpio_request_one(flexcan_en_gpio, GPIOF_DIR_OUT, "flexcan-trx-en")) {
++		/* flexcan 0 & 1 are using the same GPIOs for transceiver */
++		flexcan_pdata[0].transceiver_switch = imx6qea_flexcan0_switch_auto;
++		flexcan_pdata[1].transceiver_switch = imx6qea_flexcan1_switch_auto;
++	}
++
++	return 0;
++}
++
+ /* For imx6q sabrelite board: set KSZ9021RN RGMII pad skew */
+ static int ksz9021rn_phy_fixup(struct phy_device *phydev)
+ {
+@@ -573,6 +615,9 @@ static void __init imx6q_init_late(void)
+ 	if (of_machine_is_compatible("fsl,imx6q-sabreauto")
+ 		|| of_machine_is_compatible("fsl,imx6dl-sabreauto"))
+ 		imx6q_flexcan_fixup_auto();
++
++	if (of_machine_is_compatible("fsl,imx6qea-com"))
++		imx6qea_flexcan_fixup_auto();
+ }
+ 
+ static void __init imx6q_map_io(void)
 diff --git a/arch/arm/mach-imx/mach-imx6sx.c b/arch/arm/mach-imx/mach-imx6sx.c
 index 7f5188f..131e896 100755
 --- a/arch/arm/mach-imx/mach-imx6sx.c
@@ -2263,6 +2450,23 @@ index 0000000..c7dc0f0
 +MODULE_DESCRIPTION("Microchip AR1021 I2C Driver");
 +MODULE_LICENSE("GPL");
 +
+diff --git a/drivers/video/mxc/mxc_lcdif.c b/drivers/video/mxc/mxc_lcdif.c
+index d635edd..b7f0e42 100644
+--- a/drivers/video/mxc/mxc_lcdif.c
++++ b/drivers/video/mxc/mxc_lcdif.c
+@@ -48,6 +48,12 @@ static struct fb_videomode lcdif_modedb[] = {
+ 	FB_SYNC_CLK_LAT_FALL,
+ 	FB_VMODE_NONINTERLACED,
+ 	0,},
++	{
++	/* 800x480 @ 49 Hz , pixel clk @ 33.5MHz */
++	"EA7-WVGA", 49, 800, 480, 33500, 89, 164, 75, 75, 10, 10,
++	FB_SYNC_CLK_LAT_FALL,
++	FB_VMODE_NONINTERLACED,
++	0,},
+ };
+ static int lcdif_modedb_sz = ARRAY_SIZE(lcdif_modedb);
+ 
 diff --git a/sound/soc/fsl/Kconfig b/sound/soc/fsl/Kconfig
 index 573dabb..bb229da 100644
 --- a/sound/soc/fsl/Kconfig
