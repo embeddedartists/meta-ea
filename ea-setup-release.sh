@@ -165,5 +165,9 @@ if [ "$BACKEND" = "fb" ] || [ "$BACKEND" = "wayland" ] || [ "$BACKEND" = "dfb" ]
     echo >> $BUILD_DIR/conf/local.conf
 fi
 
+# Remove .bbappend files that only works on iMX6 UltraLite builds
+echo "BBMASK = \"meta-ea/.*/pulseaudio_6.0|meta-ea/.*/u-boot.*2015.04|meta-ea/.*linux-imx.*3.14.38\"" >> $BUILD_DIR/conf/local.conf
+echo >> $BUILD_DIR/conf/local.conf
+
 cd  $BUILD_DIR
 clean_up
