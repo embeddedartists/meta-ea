@@ -4280,6 +4280,58 @@ index 353003c..d5f8088 100644
  Active  arm         armv7          mx6         gateworks       gw_ventana          gwventanadl                          gw_ventana:IMX_CONFIG=board/gateworks/gw_ventana/gw_ventana.cfg,MX6DL,DDR_MB=512                                                  Tim Harvey <tharvey@gateworks.com>
  Active  arm         armv7          mx6         gateworks       gw_ventana          gwventanadl1g                        gw_ventana:IMX_CONFIG=board/gateworks/gw_ventana/gw_ventana.cfg,MX6DL,DDR_MB=1024                                                 Tim Harvey <tharvey@gateworks.com>
  Active  arm         armv7          mx6         gateworks       gw_ventana          gwventanaq                           gw_ventana:IMX_CONFIG=board/gateworks/gw_ventana/gw_ventana.cfg,MX6Q,DDR_MB=512                                                   Tim Harvey <tharvey@gateworks.com>
+diff --git a/common/spl/spl.c b/common/spl/spl.c
+index 774fdad..eb59542 100644
+--- a/common/spl/spl.c
++++ b/common/spl/spl.c
+@@ -108,6 +108,16 @@ __weak void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
+ 	image_entry_noargs_t image_entry =
+ 			(image_entry_noargs_t) spl_image->entry_point;
+ 
++#ifdef CONFIG_SECURE_BOOT
++	extern uint32_t authenticate_image(
++			uint32_t ddr_start, uint32_t image_size);
++	if (authenticate_image(spl_image->load_addr, spl_image->size) == 0) {
++		debug("SPL failed to Authenticate image, Please check\n");
++		hang();
++	}
++#endif
++
++
+ 	debug("image entry point: 0x%X\n", spl_image->entry_point);
+ 	image_entry();
+ }
+diff --git a/common/spl/spl_mmc.c b/common/spl/spl_mmc.c
+index fa6f891..475696c 100644
+--- a/common/spl/spl_mmc.c
++++ b/common/spl/spl_mmc.c
+@@ -34,9 +34,26 @@ static int mmc_load_image_raw(struct mmc *mmc, unsigned long sector)
+ 
+ 	spl_parse_image_header(header);
+ 
++#ifdef CONFIG_SECURE_BOOT
++	/* 
++	 * A signed image will have IVT + CSF at end of image
++	 * We must read enough of the image into SDRAM to be able
++	 * to verify signature. 
++	 * - IVT must be added to a 4K boundary
++	 * - IVT header is 32 bytes (0x20)
++	 * - Read enough to get CSF. Reading 8K although CSF is smaller
++	 */
++
++	/* align size to 4K */
++	image_size_sectors = (spl_image.size + 0x1000 - 1) & ~(0x1000 - 1);
++	/* add ivt size (0x20) + CSF pad size (8K) */
++	image_size_sectors = (image_size_sectors + 0x20 + 0x2000 + mmc->read_bl_len - 1) /
++				mmc->read_bl_len;
++#else
+ 	/* convert size to sectors - round up */
+ 	image_size_sectors = (spl_image.size + mmc->read_bl_len - 1) /
+ 				mmc->read_bl_len;
++#endif
+ 
+ 	/* Read the header too to avoid extra memcpy */
+ 	err = mmc->block_dev.block_read(0, sector, image_size_sectors,
 diff --git a/drivers/net/fec_mxc.c b/drivers/net/fec_mxc.c
 index c3c07ed..8b9b217 100644
 --- a/drivers/net/fec_mxc.c
@@ -5250,6 +5302,3 @@ index 0000000..25aed4f
 +#endif
 +
 +#endif				/* __CONFIG_H */
--- 
-1.9.1
-
