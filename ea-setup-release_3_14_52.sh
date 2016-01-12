@@ -23,7 +23,7 @@ PROGNAME="setup-environment"
 exit_message ()
 {
    echo "To return to this build environment later please run:"
-   echo "    source setup-environment <build_dir>" 
+   echo "    source setup-environment <build_dir>"
 
 }
 
@@ -42,7 +42,7 @@ echo "
 clean_up()
 {
 
-    unset CWD BUILD_DIR BACKEND DIST_FEATURES_remove DIST_FEATURES_add
+    unset CWD BUILD_DIR BACKEND FSLDISTRO
     unset fsl_setup_help fsl_setup_error fsl_setup_flag
     unset usage clean_up
     unset ARM_DIR META_FSL_BSP_RELEASE
@@ -51,6 +51,8 @@ clean_up()
 
 # get command line options
 OLD_OPTIND=$OPTIND
+unset FSLDISTRO
+
 while getopts "k:r:t:b:e:gh" fsl_setup_flag
 do
     case $fsl_setup_flag in
@@ -58,22 +60,46 @@ do
            echo -e "\n Build directory is " $BUILD_DIR
            ;;
         e)
+            # Determine what distro needs to be used.
             BACKEND="$OPTARG"
-            unset DIST_FEATURES_add
-            unset DIST_FEATURES_remove
             if [ "$BACKEND" = "fb" ]; then
-                DIST_FEATURES_remove="x11 wayland directfb "
-                echo -e "\n Using FB backend with FB DIST_FEATURES to override poky X11 DIST FEATURES"
+                if [ -z "$DISTRO" ]; then
+                    FSLDISTRO='fsl-imx-fb'
+                    echo -e "\n Using FB backend with FB DIST_FEATURES to override poky X11 DIST FEATURES"
+                elif [ ! "$DISTRO" = "fsl-imx-fb" ]; then
+                    echo -e "\n DISTRO specified conflicts with -e. Please use just one or the other."
+                    fsl_setup_error='true'
+                fi
+
             elif [ "$BACKEND" = "dfb" ]; then
-                DIST_FEATURES_remove="x11 wayland "
-                DIST_FEATURES_add=" directfb "
-                echo -e "\n Using DirectFB backend with DirectFB DIST_FEATURES to override poky X11 DIST FEATURES"
+                if [ -z "$DISTRO" ]; then
+                    FSLDISTRO='fsl-imx-dfb'
+                    echo -e "\n Using DirectFB backend with DirectFB DIST_FEATURES to override poky X11 DIST FEATURES"
+                elif [ ! "$DISTRO" = "fsl-imx-dfb" ]; then
+                    echo -e "\n DISTRO specified conflicts with -e. Please use just one or the other."
+                    fsl_setup_error='true'
+                fi
+
             elif [ "$BACKEND" = "wayland" ]; then
-                DIST_FEATURES_remove="x11 directfb "
+                if [ -z "$DISTRO" ]; then
+                    FSLDISTRO='fsl-imx-wayland'
+                    echo -e "\n Using Wayland backend."
+                elif [ ! "$DISTRO" = "fsl-imx-wayland" ]; then
+                    echo -e "\n DISTRO specified conflicts with -e. Please use just one or the other."
+                    fsl_setup_error='true'
+                fi
+
             elif [ "$BACKEND" = "x11" ]; then
-                echo -e  "\n Using X11 backend with poky DIST_FEATURES"
+                if [ -z "$DISTRO" ]; then
+                    FSLDISTRO='fsl-imx-x11'
+                    echo -e  "\n Using X11 backend with poky DIST_FEATURES"
+                elif [ ! "$DISTRO" = "fsl-imx-x11" ]; then
+                    echo -e "\n DISTRO specified conflicts with -e. Please use just one or the other."
+                    fsl_setup_error='true'
+                fi
+
             else
-                echo -e "\n Invalid backend specified - use fb, dfb, wayland, or x11"
+                echo -e "\n Invalid backend specified with -e.  Use fb, dfb, wayland, or x11"
                 fsl_setup_error='true'
             fi
            ;;
@@ -83,6 +109,16 @@ do
            ;;
     esac
 done
+
+
+if [ -z "$DISTRO" ]; then
+    if [ -z "$FSLDISTRO" ]; then
+        FSLDISTRO='fsl-imx-x11'
+    fi
+else
+    FSLDISTRO="$DISTRO"
+fi
+
 OPTIND=$OLD_OPTIND
 
 # check the "-h" and other not supported options
@@ -100,13 +136,32 @@ if [ -z "$MACHINE" ]; then
 fi
 
 # New machine definitions may need to be added to the expected location
-cp sources/meta-fsl-bsp-release/imx/meta-fsl-arm/conf/machine/* sources/meta-fsl-arm/conf/machine
+if [ -d ./sources/meta-freescale ]; then
+   cp -r sources/meta-fsl-bsp-release/imx/meta-bsp/conf/machine/* sources/meta-freescale/conf/machine
+else
+   cp -r sources/meta-fsl-bsp-release/imx/meta-bsp/conf/machine/* sources/meta-fsl-arm/conf/machine
+fi
 
 # copy new EULA into community so setup uses latest i.MX EULA
-cp sources/meta-fsl-bsp-release/EULA.txt sources/meta-fsl-arm/EULA
+if [ -d ./sources/meta-freescale ]; then
+   cp sources/meta-fsl-bsp-release/imx/EULA.txt sources/meta-freescale/EULA
+else
+   cp sources/meta-fsl-bsp-release/imx/EULA.txt sources/meta-fsl-arm/EULA
+fi
+
+# copy unpack class with md5sum that matches new EULA
+if [ -d ./sources/meta-freescale ]; then
+   cp sources/meta-fsl-bsp-release/imx/classes/fsl-eula-unpack.bbclass sources/meta-freescale/classes
+else
+   cp sources/meta-fsl-bsp-release/imx/classes/fsl-eula-unpack.bbclass sources/meta-fsl-arm/classes
+fi
 
 # Set up the basic yocto environment
-MACHINE=$MACHINE . ./$PROGNAME $BUILD_DIR
+if [ -z "$DISTRO" ]; then
+   DISTRO=$FSLDISTRO MACHINE=$MACHINE . ./$PROGNAME $BUILD_DIR
+else
+   MACHINE=$MACHINE . ./$PROGNAME $BUILD_DIR
+fi
 
 # Point to the current directory since the last command changed the directory to $BUILD_DIR
 BUILD_DIR=.
@@ -125,21 +180,18 @@ else
     cp $BUILD_DIR/conf/local.conf.org $BUILD_DIR/conf/local.conf
 fi
 
+
 if [ ! -e $BUILD_DIR/conf/bblayers.conf.org ]; then
     cp $BUILD_DIR/conf/bblayers.conf $BUILD_DIR/conf/bblayers.conf.org
 else
     cp $BUILD_DIR/conf/bblayers.conf.org $BUILD_DIR/conf/bblayers.conf
 fi
 
-# set mesa preferred provider in case of FB or wayland backends
-if [ "$BACKEND" = "fb" ] || [ "$BACKEND" = "wayland" ]; then
-     echo "PREFERRED_PROVIDER_virtual/mesa = \"\"" >> $BUILD_DIR/conf/local.conf
-fi
 
-META_FSL_BSP_RELEASE="${CWD}/sources/meta-fsl-bsp-release/imx/meta-fsl-arm"
+META_FSL_BSP_RELEASE="${CWD}/sources/meta-fsl-bsp-release/imx/meta-bsp"
 echo "##Freescale Yocto Release layer" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-fsl-bsp-release/imx/meta-fsl-arm \"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-fsl-bsp-release/imx/meta-fsl-demos \"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \" \${BSPDIR}/sources/meta-fsl-bsp-release/imx/meta-bsp \"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \" \${BSPDIR}/sources/meta-fsl-bsp-release/imx/meta-sdk \"" >> $BUILD_DIR/conf/bblayers.conf
 
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-browser \"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-gnome \"" >> $BUILD_DIR/conf/bblayers.conf
@@ -149,25 +201,24 @@ echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-ruby \"" >> $BUIL
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-filesystems \"" >> $BUILD_DIR/conf/bblayers.conf
 
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-qt5 \"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-fsl-bsp-release/imx/meta-fsl-qt5 \"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-fsl-bsp-release/imx/meta-fsl-bluez \"" >> $BUILD_DIR/conf/bblayers.conf
 
-echo "##Embedded Artists Yocto layer" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.conf
-
-echo >> $BUILD_DIR/conf/local.conf
-
-if [ "$BACKEND" = "fb" ] || [ "$BACKEND" = "wayland" ] || [ "$BACKEND" = "dfb" ]  ; then
-    echo "DISTRO_FEATURES_remove = \"$DIST_FEATURES_remove\"" >> $BUILD_DIR/conf/local.conf
-    if [ !  -z "$DIST_FEATURES_add" ] ; then
-        echo "DISTRO_FEATURES_append = \"$DIST_FEATURES_add\"" >> $BUILD_DIR/conf/local.conf
-    fi
-    echo >> $BUILD_DIR/conf/local.conf
+echo BSPDIR=$BSPDIR
+echo BUILD_DIR=$BUILD_DIR
+if [ -d ../sources/meta-freescale ]; then
+    echo meta-freescale directory found
+    # Change settings according to environment
+    sed -e "s,meta-fsl-arm\s,meta-freescale ,g" \
+        -i conf/bblayers.conf
+    sed -e "s,LAYERDEPENDS\s,#LAYERDEPENDS,g" \
+        -i ../sources/meta-fsl-arm-extra/conf/layer.conf
+    sed -e "s,..BSPDIR./sources/meta-fsl-arm-extra\s, ,g" \
+        -i conf/bblayers.conf
 fi
 
-# Remove .bbappend files for newer kernels that are not available in this  branch
-echo "BBMASK = \"meta-ea/.*/pulseaudio_6.0|meta-ea/.*/u-boot.*2015.04|meta-ea/.*linux-imx.*3.14.38|meta-ea/.*linux-imx.*3.14.52\"" >> $BUILD_DIR/conf/local.conf
-echo >> $BUILD_DIR/conf/local.conf
+echo "#Embedded Artists Yocto layer" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.conf
+
 
 cd  $BUILD_DIR
 clean_up
+unset FSLDISTRO
