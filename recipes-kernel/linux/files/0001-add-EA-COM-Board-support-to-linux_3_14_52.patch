@@ -1016,10 +1016,10 @@ index 0000000..c7083f6
 +
 diff --git a/arch/arm/boot/dts/imx6sxea-com-kit-m4.dts b/arch/arm/boot/dts/imx6sxea-com-kit-m4.dts
 new file mode 100644
-index 0000000..d5e0b1d
+index 0000000..875b524
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6sxea-com-kit-m4.dts
-@@ -0,0 +1,94 @@
+@@ -0,0 +1,98 @@
 +/*
 + * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
 + *
@@ -1063,6 +1063,10 @@ index 0000000..d5e0b1d
 +};
 +
 +&mcctty{
++	status = "okay";
++};
++
++&rpmsg {
 +	status = "okay";
 +};
 +
@@ -1116,7 +1120,7 @@ index 0000000..d5e0b1d
 +
 diff --git a/arch/arm/boot/dts/imx6sxea-com-kit.dts b/arch/arm/boot/dts/imx6sxea-com-kit.dts
 new file mode 100644
-index 0000000..cfb1cdc
+index 0000000..0b9939e
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6sxea-com-kit.dts
 @@ -0,0 +1,590 @@
@@ -1657,22 +1661,22 @@ index 0000000..cfb1cdc
 +
 +		pinctrl_uart1: uart1grp {
 +			fsl,pins = <
-+				MX6SX_PAD_GPIO1_IO04__UART1_TX		0x1b0b1
-+				MX6SX_PAD_GPIO1_IO05__UART1_RX		0x1b0b1
++				MX6SX_PAD_GPIO1_IO04__UART1_TX		0x1f0b1
++				MX6SX_PAD_GPIO1_IO05__UART1_RX		0x1f0b1
 +			>;
 +		};
 +
 +		pinctrl_uart2: uart2grp {
 +			fsl,pins = <
-+				MX6SX_PAD_SD1_DATA1__UART2_TX		0x1b0b1
-+				MX6SX_PAD_SD1_DATA0__UART2_RX		0x1b0b1
++				MX6SX_PAD_SD1_DATA1__UART2_TX		0x1f0b1
++				MX6SX_PAD_SD1_DATA0__UART2_RX		0x1f0b1
 +			>;
 +		};
 +
 +		pinctrl_uart5: uart5grp {
 +			fsl,pins = <
-+				MX6SX_PAD_KEY_COL3__UART5_TX		0x1b0b1
-+				MX6SX_PAD_KEY_ROW3__UART5_RX		0x1b0b1
++				MX6SX_PAD_KEY_COL3__UART5_TX		0x1f0b1
++				MX6SX_PAD_KEY_ROW3__UART5_RX		0x1f0b1
 +			>;
 +		};
 +
@@ -2125,7 +2129,7 @@ index 0000000..a2990d7
 +};
 diff --git a/arch/arm/boot/dts/imx6ulea-com-kit.dts b/arch/arm/boot/dts/imx6ulea-com-kit.dts
 new file mode 100644
-index 0000000..9ca2ee9
+index 0000000..d13fce7
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6ulea-com-kit.dts
 @@ -0,0 +1,373 @@
@@ -2429,22 +2433,22 @@ index 0000000..9ca2ee9
 +
 +		pinctrl_uart1: uart1grp {
 +			fsl,pins = <
-+				MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX 0x1b0b1
-+				MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX 0x1b0b1
++				MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX 0x1f0b1
++				MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX 0x1f0b1
 +			>;
 +		};
 +
 +		pinctrl_uart2: uart2grp {
 +			fsl,pins = <
-+				MX6UL_PAD_UART2_TX_DATA__UART2_DCE_TX	0x1b0b1
-+				MX6UL_PAD_UART2_RX_DATA__UART2_DCE_RX	0x1b0b1
++				MX6UL_PAD_UART2_TX_DATA__UART2_DCE_TX	0x1f0b1
++				MX6UL_PAD_UART2_RX_DATA__UART2_DCE_RX	0x1f0b1
 +			>;
 +		};
 +
 +		pinctrl_uart3: uart3grp {
 +			fsl,pins = <
-+				MX6UL_PAD_UART3_TX_DATA__UART3_DCE_TX	0x1b0b1
-+				MX6UL_PAD_UART3_RX_DATA__UART3_DCE_RX	0x1b0b1
++				MX6UL_PAD_UART3_TX_DATA__UART3_DCE_TX	0x1f0b1
++				MX6UL_PAD_UART3_RX_DATA__UART3_DCE_RX	0x1f0b1
 +			>;
 +		};
 +

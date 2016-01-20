@@ -3118,7 +3118,7 @@ index 0000000..35e4cd3
 +#endif
 diff --git a/board/embeddedartists/mx6sxea-com/mx6sxea-com.c b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 new file mode 100644
-index 0000000..d1c8380
+index 0000000..3539f85
 --- /dev/null
 +++ b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 @@ -0,0 +1,1201 @@
@@ -3380,7 +3380,7 @@ index 0000000..d1c8380
 +	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
 +}
 +
-+#ifdef CONFIG_QSPI
++#ifdef CONFIG_FSL_QSPI
 +
 +#define QSPI_PAD_CTRL1	\
 +		(PAD_CTL_SRE_FAST | PAD_CTL_SPEED_MED | \
@@ -4102,7 +4102,7 @@ index 0000000..d1c8380
 +	setup_fec(CONFIG_FEC_ENET_DEV);
 +#endif
 +
-+#ifdef CONFIG_QSPI
++#ifdef CONFIG_FSL_QSPI
 +	board_qspi_init();
 +#endif
 +
