@@ -192,10 +192,10 @@ index 0000000..6ae8f6c
 +#endif
 diff --git a/board/embeddedartists/common/mx6ea_eeprom.c b/board/embeddedartists/common/mx6ea_eeprom.c
 new file mode 100644
-index 0000000..b231f33
+index 0000000..88febb1
 --- /dev/null
 +++ b/board/embeddedartists/common/mx6ea_eeprom.c
-@@ -0,0 +1,376 @@
+@@ -0,0 +1,473 @@
 +/*
 + * Copyright (C) 2015 Embedded Artists AB
 + *
@@ -398,6 +398,103 @@ index 0000000..b231f33
 +	{0x020e0018, 0x007F007F},
 +	{0x020e001c, 0x007F007F},
 +	{0x020c4060, 0x000000fb},
++
++#elif defined(CONFIG_MX6DL)
++        {0x020e0774, 0x000C0000},
++        {0x020e0754, 0x00000000},
++        {0x020e04ac, 0x00000030},
++        {0x020e04b0, 0x00000030},
++        {0x020e0464, 0x00000030},
++        {0x020e0490, 0x00000030},
++        {0x020e074c, 0x00000030},
++        {0x020e0494, 0x00000030},
++        {0x020e04a0, 0x00000000},
++        {0x020e04b4, 0x00000030},
++        {0x020e04b8, 0x00000030},
++        {0x020e076c, 0x00000030},
++        {0x020e0750, 0x00020000},
++        {0x020e04bc, 0x00000030},
++        {0x020e04c0, 0x00000030},
++        {0x020e04c4, 0x00000030},
++        {0x020e04c8, 0x00000030},
++        {0x020e04cc, 0x00000030},
++        {0x020e04d0, 0x00000030},
++        {0x020e04d4, 0x00000030},
++        {0x020e04d8, 0x00000030},
++        {0x020e0760, 0x00020000},
++        {0x020e0764, 0x00000030},
++        {0x020e0770, 0x00000030},
++        {0x020e0778, 0x00000030},
++        {0x020e077c, 0x00000030},
++        {0x020e0780, 0x00000030},
++        {0x020e0784, 0x00000030},
++        {0x020e078c, 0x00000030},
++        {0x020e0748, 0x00000030},
++        {0x020e0470, 0x00000030},
++        {0x020e0474, 0x00000030},
++        {0x020e0478, 0x00000030},
++        {0x020e047c, 0x00000030},
++        {0x020e0480, 0x00000030},
++        {0x020e0484, 0x00000030},
++        {0x020e0488, 0x00000030},
++        {0x020e048c, 0x00000030},
++        {0x021b0800, 0xa1390003},
++        {0x021b080c, 0x004E004E},
++        {0x021b0810, 0x0042004A},
++        {0x021b480c, 0x002D0030},
++        {0x021b4810, 0x002C0045},
++        {0x021b083c, 0x42460244},
++        {0x021b0840, 0x02300230},
++        {0x021b483c, 0x422C0238},
++        {0x021b4840, 0x021E0222},
++        {0x021b0848, 0x44464848},
++        {0x021b4848, 0x42484842},
++        {0x021b0850, 0x342E2A32},
++        {0x021b4850, 0x362E322A},
++        {0x021b081c, 0x33333333},
++        {0x021b0820, 0x33333333},
++        {0x021b0824, 0x33333333},
++        {0x021b0828, 0x33333333},
++        {0x021b481c, 0x33333333},
++        {0x021b4820, 0x33333333},
++        {0x021b4824, 0x33333333},
++        {0x021b4828, 0x33333333},
++        {0x021b08b8, 0x00000800},
++        {0x021b48b8, 0x00000800},
++        {0x021b0004, 0x0002002D},
++        {0x021b0008, 0x00333030},
++        {0x021b000c, 0x3F435313},
++        {0x021b0010, 0xB66E8B63},
++        {0x021b0014, 0x01FF00DB},
++        {0x021b0018, 0x00011740},
++        {0x021b001c, 0x00008000},
++        {0x021b002c, 0x000026d2},
++        {0x021b0030, 0x00431023},
++        {0x021b0040, 0x00000027},
++        {0x021b0000, 0x831A0000},
++/*
++        {0x021b001c, 0x04008032},
++        {0x021b001c, 0x00008033},
++        {0x021b001c, 0x00048031},
++        {0x021b001c, 0x05208030},
++*/
++        {0x021b0020, 0x00005800},
++        {0x021b0818, 0x00011117},
++        {0x021b4818, 0x00011117},
++        {0x021b0004, 0x0002556D},
++        {0x021b0404, 0x00011006},
++        {0x021b001c, 0x00000000},
++        {0x020c4068, 0x00C03F3F},
++        {0x020c406c, 0x0030FC03},
++        {0x020c4070, 0x0FFFC000},
++        {0x020c4074, 0x3FF00000},
++        {0x020c4078, 0x00FFF300},
++        {0x020c407c, 0x0F0000C3},
++        {0x020c4080, 0x000003FF},
++        {0x020e0010, 0xF00000CF},
++        {0x020e0018, 0x007F007F},
++        {0x020e001c, 0x007F007F},
++
 +
 +#elif defined(CONFIG_MX6UL)
 +
@@ -835,6 +932,158 @@ index 0000000..707cbd0
 + * This sets CKO1 at ahb_clk_root/8 = 132/8 = 16.5 MHz
 + */
 +DATA 4, 0x020c4060, 0x000000fb
++#endif
+diff --git a/board/embeddedartists/mx6qea-com/imximage_mx6dl.cfg b/board/embeddedartists/mx6qea-com/imximage_mx6dl.cfg
+new file mode 100644
+index 0000000..103dd3f
+--- /dev/null
++++ b/board/embeddedartists/mx6qea-com/imximage_mx6dl.cfg
+@@ -0,0 +1,146 @@
++/*
++ * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ *
++ * Refer docs/README.imxmage for more details about how-to configure
++ * and create imximage boot image
++ *
++ * The syntax is taken as close as possible with the kwbimage
++ */
++
++#define __ASSEMBLY__
++#include <config.h>
++/* image version */
++
++IMAGE_VERSION 2
++
++/*
++ * Boot Device : one of
++ * spi, sd (the board has no nand neither onenand)
++ */
++
++BOOT_FROM	sd
++#ifdef CONFIG_USE_PLUGIN
++/*PLUGIN    plugin-binary-file    IRAM_FREE_START_ADDR*/
++PLUGIN board/freescale/mx6sabresd/plugin.bin 0x00907000
++#else
++
++#ifdef CONFIG_SECURE_BOOT
++CSF CONFIG_CSF_SIZE
++#endif
++
++/*
++ * Device Configuration Data (DCD)
++ *
++ * Each entry must have the format:
++ * Addr-type           Address        Value
++ *
++ * where:
++ *	Addr-type register length (1,2 or 4 bytes)
++ *	Address	  absolute address of the register
++ *	value	  value to be stored in the register
++ */
++DATA 4	0x020e0774 0x000C0000
++DATA 4	0x020e0754 0x00000000
++DATA 4	0x020e04ac 0x00000030
++DATA 4	0x020e04b0 0x00000030
++DATA 4	0x020e0464 0x00000030
++DATA 4	0x020e0490 0x00000030
++DATA 4	0x020e074c 0x00000030
++DATA 4	0x020e0494 0x00000030
++DATA 4	0x020e04a0 0x00000000
++DATA 4	0x020e04b4 0x00000030
++DATA 4	0x020e04b8 0x00000030
++DATA 4	0x020e076c 0x00000030
++DATA 4	0x020e0750 0x00020000
++DATA 4	0x020e04bc 0x00000030
++DATA 4	0x020e04c0 0x00000030
++DATA 4	0x020e04c4 0x00000030
++DATA 4	0x020e04c8 0x00000030
++DATA 4	0x020e04cc 0x00000030
++DATA 4	0x020e04d0 0x00000030
++DATA 4	0x020e04d4 0x00000030
++DATA 4	0x020e04d8 0x00000030
++DATA 4	0x020e0760 0x00020000
++DATA 4	0x020e0764 0x00000030
++DATA 4	0x020e0770 0x00000030
++DATA 4	0x020e0778 0x00000030
++DATA 4	0x020e077c 0x00000030
++DATA 4	0x020e0780 0x00000030
++DATA 4	0x020e0784 0x00000030
++DATA 4	0x020e078c 0x00000030
++DATA 4	0x020e0748 0x00000030
++DATA 4	0x020e0470 0x00000030
++DATA 4	0x020e0474 0x00000030
++DATA 4	0x020e0478 0x00000030
++DATA 4	0x020e047c 0x00000030
++DATA 4	0x020e0480 0x00000030
++DATA 4	0x020e0484 0x00000030
++DATA 4	0x020e0488 0x00000030
++DATA 4	0x020e048c 0x00000030
++DATA 4	0x021b0800 0xa1390003
++/* ANDLI: modded according to DDR Stress test */
++DATA 4	0x021b080c 0x004E004E
++DATA 4	0x021b0810 0x0042004A
++DATA 4	0x021b480c 0x002D0030
++DATA 4	0x021b4810 0x002C0045
++DATA 4	0x021b083c 0x42460244
++DATA 4	0x021b0840 0x02300230
++DATA 4	0x021b483c 0x422C0238
++DATA 4	0x021b4840 0x021E0222
++DATA 4	0x021b0848 0x44464848
++DATA 4	0x021b4848 0x42484842
++DATA 4	0x021b0850 0x342E2A32
++DATA 4	0x021b4850 0x362E322A
++/* ANDLI: end of mod */
++DATA 4	0x021b081c 0x33333333
++DATA 4	0x021b0820 0x33333333
++DATA 4	0x021b0824 0x33333333
++DATA 4	0x021b0828 0x33333333
++DATA 4	0x021b481c 0x33333333
++DATA 4	0x021b4820 0x33333333
++DATA 4	0x021b4824 0x33333333
++DATA 4	0x021b4828 0x33333333
++DATA 4	0x021b08b8 0x00000800
++DATA 4	0x021b48b8 0x00000800
++DATA 4	0x021b0004 0x0002002D
++DATA 4	0x021b0008 0x00333030
++DATA 4	0x021b000c 0x3F435313
++DATA 4	0x021b0010 0xB66E8B63
++DATA 4	0x021b0014 0x01FF00DB
++/* ANDLI: modded according to DDR Stress test */
++DATA 4	0x021b0018 0x00011740
++/* ANDLI: end of mod */
++DATA 4	0x021b001c 0x00008000
++DATA 4	0x021b002c 0x000026d2
++DATA 4	0x021b0030 0x00431023
++DATA 4	0x021b0040 0x00000027
++DATA 4	0x021b0000 0x831A0000
++DATA 4	0x021b001c 0x04008032
++DATA 4	0x021b001c 0x00008033
++DATA 4	0x021b001c 0x00048031
++DATA 4	0x021b001c 0x05208030
++DATA 4 0x021b001c 0x04008040
++DATA 4	0x021b0020 0x00005800
++DATA 4	0x021b0818 0x00011117
++DATA 4	0x021b4818 0x00011117
++DATA 4	0x021b0004 0x0002556D
++DATA 4	0x021b0404 0x00011006
++DATA 4	0x021b001c 0x00000000
++
++/* set the default clock gate to save power */
++DATA 4 0x020c4068 0x00C03F3F
++DATA 4 0x020c406c 0x0030FC03
++DATA 4 0x020c4070 0x0FFFC000
++DATA 4 0x020c4074 0x3FF00000
++DATA 4 0x020c4078 0x00FFF300
++DATA 4 0x020c407c 0x0F0000C3
++DATA 4 0x020c4080 0x000003FF
++
++/* enable AXI cache for VDOA/VPU/IPU */
++DATA 4 0x020e0010 0xF00000CF
++/* set IPU AXI-id0 Qos=0xf(bypass) AXI-id1 Qos=0x7 */
++DATA 4 0x020e0018 0x007F007F
++DATA 4 0x020e001c 0x007F007F
 +#endif
 diff --git a/board/embeddedartists/mx6qea-com/mx6qea-com.c b/board/embeddedartists/mx6qea-com/mx6qea-com.c
 new file mode 100644
@@ -7139,6 +7388,18 @@ index e580f22..e4353fb 100644
  
  	/* Read the header too to avoid extra memcpy */
  	err = mmc->block_dev.block_read(0, sector, image_size_sectors,
+diff --git a/configs/mx6dlea-com_defconfig b/configs/mx6dlea-com_defconfig
+new file mode 100644
+index 0000000..35103c6
+--- /dev/null
++++ b/configs/mx6dlea-com_defconfig
+@@ -0,0 +1,6 @@
++CONFIG_SPL=y
++CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx6qea-com/imximage_mx6dl.cfg,MX6DL"
++CONFIG_ARM=y
++CONFIG_TARGET_MX6QEA_COM=y
++CONFIG_DM=y
++CONFIG_DM_THERMAL=y
 diff --git a/configs/mx6qea-com_defconfig b/configs/mx6qea-com_defconfig
 new file mode 100644
 index 0000000..37c5238
@@ -7191,10 +7452,10 @@ index 0000000..67a1b27
 +CONFIG_DM_THERMAL=y
 diff --git a/include/configs/mx6qea-com.h b/include/configs/mx6qea-com.h
 new file mode 100644
-index 0000000..29373ed
+index 0000000..19c4505
 --- /dev/null
 +++ b/include/configs/mx6qea-com.h
-@@ -0,0 +1,496 @@
+@@ -0,0 +1,509 @@
 +/*
 + * Copyright (C) 2012-2014 Freescale Semiconductor, Inc.
 + *
@@ -7358,11 +7619,19 @@ index 0000000..29373ed
 +		"bootcmd=run bootcmd_sata \0"
 +
 +#else
++
++
++#ifdef CONFIG_MX6DL
++#define CONFIG_FDT_FILE "imx6dlea-com-kit.dtb"
++#else
++#define CONFIG_FDT_FILE "imx6qea-com-kit.dtb"
++#endif
++
 +#define CONFIG_EXTRA_ENV_SETTINGS \
 +	CONFIG_MFG_ENV_SETTINGS \
 +	"script=boot.scr\0" \
 +	"image=zImage\0" \
-+	"fdt_file=imx6qea-com-kit.dtb\0" \
++	"fdt_file=" CONFIG_FDT_FILE "\0" \
 +	"fdt_addr=0x18000000\0" \
 +	"boot_fdt=try\0" \
 +	"ip_dyn=yes\0" \
@@ -7476,7 +7745,12 @@ index 0000000..29373ed
 +/* Physical Memory Map */
 +#define CONFIG_NR_DRAM_BANKS           1
 +#define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
++
++#ifdef CONFIG_MX6DL
++#define PHYS_SDRAM_SIZE                 SZ_1G
++#else
 +#define PHYS_SDRAM_SIZE			SZ_2G
++#endif
 +
 +#define CONFIG_SYS_SDRAM_BASE          PHYS_SDRAM
 +#define CONFIG_SYS_INIT_RAM_ADDR       IRAM_BASE_ADDR
