@@ -192,10 +192,10 @@ index 0000000..6ae8f6c
 +#endif
 diff --git a/board/embeddedartists/common/mx6ea_eeprom.c b/board/embeddedartists/common/mx6ea_eeprom.c
 new file mode 100644
-index 0000000..88febb1
+index 0000000..20d3cb6
 --- /dev/null
 +++ b/board/embeddedartists/common/mx6ea_eeprom.c
-@@ -0,0 +1,473 @@
+@@ -0,0 +1,523 @@
 +/*
 + * Copyright (C) 2015 Embedded Artists AB
 + *
@@ -495,7 +495,6 @@ index 0000000..88febb1
 +        {0x020e0018, 0x007F007F},
 +        {0x020e001c, 0x007F007F},
 +
-+
 +#elif defined(CONFIG_MX6UL)
 +
 +	{0x020c4068, 0xffffffff},
@@ -565,8 +564,59 @@ index 0000000..88febb1
 +
 +#elif defined(CONFIG_MX7D)
 +
-+	// TODO
-+
++        {0x30340004, 0x4F400005},
++        {0x30391000, 0x00000002},
++        {0x307a0000, 0x01040008},
++        {0x307A0064, 0x00200038},
++        {0x307a0490, 0x00000001},
++        {0x307A00D0, 0x00350001},
++        {0x307A00DC, 0x00C3000A},
++        {0x307A00E0, 0x00010000},
++        {0x307A00E4, 0x00110006},
++        {0x307A00F4, 0x0000033F},
++        {0x307A0100, 0x0A0E110B},
++        {0x307A0104, 0x00020211},
++        {0x307A0108, 0x03060708},
++        {0x307A010C, 0x00A0500C},
++        {0x307A0110, 0x05020307},
++        {0x307A0114, 0x02020404},
++        {0x307A0118, 0x02020003},
++        {0x307A011C, 0x00000202},
++        {0x307A0120, 0x00000202},
++        {0x307A0180, 0x00600018},
++        {0x307A0184, 0x00E00100},
++        {0x307A0190, 0x02098205},
++        {0x307A0194, 0x00060303},
++        {0x307A01A0, 0x80400003},
++        {0x307A01A4, 0x00100020},
++        {0x307A01A8, 0x80100004},
++        {0x307A0200, 0x00000016},
++        {0x307A0204, 0x00171717},
++        {0x307A0210, 0x00000F0F},
++        {0x307A0214, 0x04040404},
++        {0x307A0218, 0x0F040404},
++        {0x307A0240, 0x06000600},
++        {0x307A0244, 0x00000000},
++        {0x30391000, 0x00000000},
++        {0x30790000, 0x17421e40},
++        {0x30790004, 0x10210100},
++        {0x30790008, 0x00010000},
++        {0x30790010, 0x0007080C},
++        {0x307900b0, 0x1010007e},
++        {0x3079001C, 0x01010000},
++        {0x3079009c, 0x00000b24},
++        {0x30790020, 0x0A0A0A0A},
++        {0x30790030, 0x06060606},
++        {0x30790050, 0x01000008},
++        {0x30790050, 0x00000008},
++        {0x30790018, 0x0000000F},
++        {0x307900c0, 0x0C487304},
++        {0x307900c0, 0x0C4C7304},
++        {0x307900c0, 0x0C4C7306},
++        {0x307900C0, 0x0C4C7304},
++        {0x30384130, 0x00000000},
++        {0x30340020, 0x00000178},
++        {0x30384130, 0x00000002},
 +
 +#else
 +
@@ -6042,10 +6092,10 @@ index 0000000..e1f2957
 +#endif
 diff --git a/board/embeddedartists/mx7dea-ucom/mx7dea-ucom.c b/board/embeddedartists/mx7dea-ucom/mx7dea-ucom.c
 new file mode 100644
-index 0000000..354a75c
+index 0000000..9781d26
 --- /dev/null
 +++ b/board/embeddedartists/mx7dea-ucom/mx7dea-ucom.c
-@@ -0,0 +1,1128 @@
+@@ -0,0 +1,1163 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -6153,6 +6203,8 @@ index 0000000..354a75c
 +	},
 +};
 +#endif
++
++
 +
 +int dram_init(void)
 +{
@@ -6509,6 +6561,8 @@ index 0000000..354a75c
 +	MX7D_PAD_ENET1_RGMII_TXC__ENET1_RGMII_TXC | MUX_PAD_CTRL(ENET_PAD_CTRL),
 +	MX7D_PAD_GPIO1_IO10__ENET1_MDIO | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
 +	MX7D_PAD_GPIO1_IO11__ENET1_MDC | MUX_PAD_CTRL(ENET_PAD_CTRL_MII),
++	MX7D_PAD_ENET1_COL__GPIO7_IO15 | MUX_PAD_CTRL(ENET_PAD_CTRL), /*
++	MX7D_PAD_ENET1_RX_CLK__GPIO7_IO13 |MUX_PAD_CTRL(ENET_PAD_CTRL), */
 +};
 +
 +static void setup_iomux_fec(void)
@@ -6608,6 +6662,12 @@ index 0000000..354a75c
 +	 * mmc2                    USDHC3 (eMMC)
 +	 */
 +	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
++#if defined(CONFIG_SPL_BUILD)
++                // The SPL framework expects there to be only one MMC device
++                // and we always loads u-boot from eMMC which is mapped to mmc1
++                if (i != 1) continue;
++#endif
++
 +		switch (i) {
 +		case 0:
 +			imx_iomux_v3_setup_multiple_pads(
@@ -6685,7 +6745,6 @@ index 0000000..354a75c
 +
 +	setup_iomux_fec();
 +
-+
 +	ret = fecmxc_initialize_multi(bis, 0,
 +		CONFIG_FEC_MXC_PHYADDR, IMX_FEC_BASE);
 +	if (ret)
@@ -6726,6 +6785,10 @@ index 0000000..354a75c
 +		(IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK |
 +		 IOMUXC_GPR_GPR1_GPR_ENET1_CLK_DIR_MASK), 0);
 +
++
++	/* enet pwr en */
++	gpio_direction_output(IMX_GPIO_NR(7, 15) , 0);
++
 +	ret = set_clk_enet(ENET_125MHz);
 +	if (ret)
 +		return ret;
@@ -6737,15 +6800,37 @@ index 0000000..354a75c
 +int board_phy_config(struct phy_device *phydev)
 +{
 +	/* enable rgmii rxc skew and phy mode select to RGMII copper */
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x21);
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x7ea8);
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x2f);
-+	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x71b7);
++
++	/* Enable 1.8V(SEL_1P5_1P8_POS_REG) on
++	   Phy control debug reg 0 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
++
++	/* rgmii tx clock delay enable */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
 +
 +	if (phydev->drv->config)
 +		phydev->drv->config(phydev);
 +	return 0;
 +}
++
++void board_get_hwaddr(int dev_id, unsigned char *mac)
++{
++        ea_eeprom_config_t config;
++
++        if (ea_eeprom_get_config(&config) == 0) {
++                if (dev_id == 0) {
++                        memcpy(mac, config.mac1, 6);
++                }
++                else {
++                        memcpy(mac, config.mac2, 6);
++                }
++        }
++
++}
++
++
 +#endif
 +
 +#ifdef CONFIG_MXC_EPDC
@@ -8856,7 +8941,7 @@ index 0000000..b13ba91
 +#endif
 diff --git a/include/configs/mx7dea-ucom.h b/include/configs/mx7dea-ucom.h
 new file mode 100644
-index 0000000..6254396
+index 0000000..1e159f2
 --- /dev/null
 +++ b/include/configs/mx7dea-ucom.h
 @@ -0,0 +1,465 @@
@@ -8966,7 +9051,7 @@ index 0000000..6254396
 +#define CONFIG_MII
 +#define CONFIG_FEC_XCV_TYPE             RGMII
 +#define CONFIG_ETHPRIME                 "FEC"
-+#define CONFIG_FEC_MXC_PHYADDR          0
++#define CONFIG_FEC_MXC_PHYADDR          1
 +
 +#define CONFIG_PHYLIB
 +#define CONFIG_PHY_BROADCOM
