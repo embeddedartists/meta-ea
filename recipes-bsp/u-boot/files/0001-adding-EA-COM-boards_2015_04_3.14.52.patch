@@ -71,6 +71,1202 @@ index fef2231..2357072 100644
  	mmdc1 = (struct mmdc_p_regs *)MMDC_P1_BASE_ADDR;
  #endif
  
+diff --git a/arch/arm/imx-common/Makefile b/arch/arm/imx-common/Makefile
+index 70f22b2..0fa6936 100644
+--- a/arch/arm/imx-common/Makefile
++++ b/arch/arm/imx-common/Makefile
+@@ -30,6 +30,7 @@ endif
+ ifeq ($(SOC),$(filter $(SOC),mx6))
+ obj-$(CONFIG_CMD_SATA) += sata.o
+ obj-$(CONFIG_IMX_VIDEO_SKIP) += video.o
++obj-$(CONFIG_CMD_EADISP) += eadisp.o eatouch.o
+ obj-$(CONFIG_MXC_RDC) += rdc-sema.o
+ obj-$(CONFIG_GPT_TIMER) += timer.o
+ obj-$(CONFIG_SYSCOUNTER_TIMER) += syscounter.o
+diff --git a/arch/arm/imx-common/eadisp.c b/arch/arm/imx-common/eadisp.c
+new file mode 100644
+index 0000000..9d83a40
+--- /dev/null
++++ b/arch/arm/imx-common/eadisp.c
+@@ -0,0 +1,874 @@
++/*
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <asm/errno.h>
++#include <asm/arch/clock.h>
++#include <asm/arch/crm_regs.h>
++#include <asm/arch/mxc_hdmi.h>
++#include <asm/gpio.h>
++#include <asm/imx-common/eadisp.h>
++#include <asm/io.h>
++#include <div64.h>
++#include <i2c.h>
++#include <malloc.h>
++#include <video_fb.h>
++#include <stdlib.h>
++#if defined(CONFIG_MX6SX) || defined(CONFIG_MX6UL)
++  #include <linux/fb.h>
++  #include <mxsfb.h>
++#endif
++
++/*
++ * The board file should call eadisp_setup_display to register a list of
++ * supported configurations for each supported display type.
++ *
++ * The eadisp command:
++ * - Supports enabling/disabling of each supported display type
++ * - Supports selecting one display to use in u-boot (otherwise the first)
++ *   in the list is used
++ * - Supports adding new display configurations (complete including pixclock,
++ *   resolution, and timing information)
++ * - Supports removal of added configurations
++ *
++ * The eadisp command does this by setting environment variables (XX stand for
++ * lcd,hdmi,lvds0,lvds1):
++ * - fb_XX               hold the selected configuration
++ * - eadisp_XX_enabled   set to yes if the XX-type display is enabled
++ * - eadisp_prefer       set to XX if XX is the preferred display type
++ * - cmd_XX              holds fdt commands that will be executed by a bootscript
++ */
++static const char *const fbnames[] = {
++[FB_RGB] = "fb_rgb",
++[FB_LVDS0] = "fb_lvds0",
++[FB_LVDS1] = "fb_lvds1",
++[FB_HDMI] = "fb_hdmi"
++};
++
++static const char *const timings_names[] = {
++[FB_RGB] = "t_rgb",
++[FB_LVDS0] = "t_lvds0",
++[FB_LVDS1] = "t_lvds1",
++[FB_HDMI] = "t_hdmi"
++};
++
++static const char *const ch_names[] = {
++[FB_RGB] = "",
++[FB_LVDS0] = "ldb/lvds-channel@0",
++[FB_LVDS1] = "ldb/lvds-channel@1",
++[FB_HDMI] = ""
++};
++
++static const char *const bl_names[] = {
++[FB_RGB] = "bl_rgb",
++[FB_LVDS0] = "bl_lvds",
++[FB_LVDS1] = "bl_lvds",
++[FB_HDMI] = ""
++};
++
++static const char *const cmd_fbnames[] = {
++[FB_RGB] = "cmd_rgb",
++[FB_LVDS0] = "cmd_lvds0",
++[FB_LVDS1] = "cmd_lvds1",
++[FB_HDMI] = "cmd_hdmi"
++};
++
++static const char *const short_names[] = {
++[FB_RGB] = "rgb",
++[FB_LVDS0] = "lvds0",
++[FB_LVDS1] = "lvds1",
++[FB_HDMI] = "hdmi"
++};
++
++#if defined(CONFIG_MX6SX)
++  #define DISPTYPES  "(rgb|lvds0)"
++  #define NUM_FBS    2  /* Only have 1x RGB and 1x LVDS on SoloX */
++#elif defined(CONFIG_MX6Q)
++  #define DISPTYPES  "(hdmi|rgb|lvds0|lvds1)"
++  #define NUM_FBS    4
++#elif defined(CONFIG_MX6DL)
++  #define DISPTYPES  "(hdmi|rgb|lvds0|lvds1)"
++  #define NUM_FBS    4
++#elif defined(CONFIG_MX6UL)
++  #define DISPTYPES  "rgb"
++  #define NUM_FBS    1  /* Only have 1x RGB on UltraLite */
++#elif defined(CONFIG_MX7D)
++  #define DISPTYPES  "rgb"
++  #define NUM_FBS    1  /* Only have 1x RGB on 7 Dual */
++#else
++  #error Unsupported hardware
++#endif
++
++static const char *const timings_properties[] = {
++"clock-frequency",
++"hactive",
++"vactive",
++"hback-porch",
++"hfront-porch",
++"vback-porch",
++"vfront-porch",
++"hsync-len",
++"vsync-len",
++};
++
++static const int timings_offsets[] = {
++	offsetof(struct fb_videomode, pixclock),
++	offsetof(struct fb_videomode, xres),
++	offsetof(struct fb_videomode, yres),
++	offsetof(struct fb_videomode, left_margin),
++	offsetof(struct fb_videomode, right_margin),
++	offsetof(struct fb_videomode, upper_margin),
++	offsetof(struct fb_videomode, lower_margin),
++	offsetof(struct fb_videomode, hsync_len),
++	offsetof(struct fb_videomode, vsync_len),
++};
++
++#define MAX_OWN_DISPLAYS  5
++static struct display_info_t g_di_own[MAX_OWN_DISPLAYS];
++static char g_di_own_mode_str[MAX_OWN_DISPLAYS][80];
++static int found_own_displays = 0;
++static int loaded_own_configs = 0;
++
++static const struct display_info_t *g_displays;
++static int g_display_cnt;
++static const struct display_info_t *g_di_active;
++static char g_mode_str[4][80];
++static struct display_info_t g_di_temp[FB_COUNT];
++static const char rgb24[] = "RGB24";
++static const char rgb666[] = "RGB666";
++static const char yuyv16[] = "YUYV16";
++
++static void __board_enable_hdmi(const struct display_info_t *di, int enable)
++{
++}
++
++static void __board_enable_rgb(const struct display_info_t *di, int enable)
++{
++}
++
++static void __board_enable_lvds0(const struct display_info_t *di, int enable)
++{
++}
++
++static void __board_enable_lvds1(const struct display_info_t *di, int enable)
++{
++}
++
++void board_enable_hdmi(const struct display_info_t *di, int enable)
++	__attribute__((weak, alias("__board_enable_hdmi")));
++void board_enable_rgb(const struct display_info_t *di, int enable)
++	__attribute__((weak, alias("__board_enable_rgb")));
++void board_enable_lvds0(const struct display_info_t *di, int enable)
++	__attribute__((weak, alias("__board_enable_lvds0")));
++void board_enable_lvds1(const struct display_info_t *di, int enable)
++	__attribute__((weak, alias("__board_enable_lvds1")));
++
++void eadisp_enable_fb(struct display_info_t const *di, int enable)
++{
++	switch (di->fbtype) {
++	case FB_HDMI:
++		board_enable_hdmi(di, enable);
++		break;
++	case FB_RGB:
++		board_enable_rgb(di, enable);
++		break;
++	case FB_LVDS0:
++		board_enable_lvds0(di, enable);
++		break;
++	case FB_LVDS1:
++		board_enable_lvds1(di, enable);
++		break;
++	}
++}
++
++static const struct display_info_t *find_panel(const struct display_info_t *di, int cnt, unsigned fb, const char *name)
++{
++	int i;
++
++	for (i = 0; i < cnt; i++, di++) {
++		if ((fb == di->fbtype) && !strcmp(name, di->mode.name))
++			return di;
++	}
++	return NULL;
++}
++
++static const struct display_info_t * parse_mode(
++		const struct display_info_t *gdi, int cnt, const char *p,
++		unsigned fb)
++{
++	char c;
++	char *endp;
++	unsigned value;
++	int i;
++	struct display_info_t *di;
++	char *mode_str = g_mode_str[fb];
++
++	i = 0;
++	while (i < 80 - 1) {
++		c = *p;
++		if (c)
++			p++;
++		if (!c || (c == ':')) {
++			break;
++		}
++		mode_str[i++] = c;
++	}
++	mode_str[i] = 0;
++	c = *p;
++	if (!c) {
++		// only have a mode_str, no other configuration
++		if (gdi == NULL) {
++			// parsing own configurations - no point in looking for mode_str
++			return NULL;
++		}
++		return find_panel(gdi, cnt, fb, mode_str);
++	}
++	di = &g_di_temp[fb];
++	memset(di, 0, sizeof(*di));
++
++	di->fbtype = fb;
++	di->mode.name = mode_str;
++	di->enable = eadisp_enable_fb;
++
++	if (c == 'm') {
++		di->fbflags |= FBF_MODESTR;
++		p++;
++		c = *p;
++	}
++	if (c == 'j') {
++		di->fbflags |= FBF_JEIDA;
++		p++;
++		c = *p;
++	}
++	if (c == 's') {
++		di->fbflags |= FBF_SPLITMODE;
++		p++;
++		c = *p;
++	}
++	value = simple_strtoul(p, &endp, 10);
++	if (endp <= p) {
++		printf("expecting 18|24\n");
++		return NULL;
++	}
++	if ((value != 18) && (value != 24)) {
++		printf("expecting 18|24, found %d\n", value);
++		return NULL;
++	}
++	p = endp;
++	di->pixfmt = (value == 24) ? IPU_PIX_FMT_RGB24 : IPU_PIX_FMT_RGB666;
++	c = *p;
++	if (*p != ':') {
++		printf("expected ':', %s\n", p);
++		return NULL;
++	}
++	p++;
++
++	for (i = 0; i < ARRAY_SIZE(timings_properties); i++) {
++		u32 *dest = (u32 *)((char *)&di->mode + timings_offsets[i]);
++		u32 val;
++
++		val = simple_strtoul(p, &endp, 10);
++		if (endp <= p) {
++			printf("expecting integer:%s\n", p);
++			return NULL;
++		}
++		if (i == 0) {
++			u64 lval = 1000000000000ULL;
++
++			do_div(lval, val);
++			val = (u32)lval;
++		}
++		*dest = val;
++		p = endp;
++		if (*p == ',')
++			p++;
++		if (*p == ' ')
++			p++;
++	}
++	if (*p) {
++		printf("extra parameters found:%s\n", p);
++		return NULL;
++	}
++	return di;
++}
++
++#if defined(CONFIG_MX6Q)
++static int is_fb_enabled(int fb)
++{
++	char buf[40];
++	if (getenv(fbnames[FB_LVDS0])) {
++		sprintf(buf, "eadisp_%s_enabled", short_names[fb]);
++		if (!strcmp("yes", getenv(buf))) {
++			return 1;
++		}
++	}
++	return 0;
++}
++#endif
++
++static void setup_cmd_fb(unsigned fb, const struct display_info_t *di, char *buf, int size)
++{
++	const char *mode_str = NULL;
++	int i;
++	int sz;
++	const char *buf_start = buf;
++	const struct fb_videomode *mode;
++	const char * fmt;
++
++	if (!di) {
++		sz = snprintf(buf, size, "fdt set %s status disabled", fbnames[fb]);
++		buf += sz;
++		size -= sz;
++		if (fb == FB_RGB) {
++			snprintf(buf, size, ";fdt set %s status disabled", bl_names[fb]);
++#if defined(CONFIG_MX6SX)
++		} else if (fb == FB_LVDS0) {
++			snprintf(buf, size, ";fdt set %s status disabled", bl_names[fb]);
++#elif defined(CONFIG_MX6Q)
++		} else if (fb == FB_LVDS1) {
++			// Enough to do this check for FB_LVDS1 as it will test FB_LVDS0 as well
++			if (!is_fb_enabled(FB_LVDS0)) {
++				// neither LVDS interface is enabled so no need for backlight
++				snprintf(buf, size, ";fdt set %s status disabled", bl_names[fb]);
++			}
++#endif
++		}
++		setenv(cmd_fbnames[fb], buf_start);
++		//printf("Disabling %s\n", short_names[fb]);
++		return;
++	} else {
++		if (di->fbflags & FBF_MODESTR) {
++			mode_str = di->mode.name;
++		}
++	}
++
++	sz = snprintf(buf, size, "fdt set %s status okay;", fbnames[fb]);
++	buf += sz;
++	size -= sz;
++
++	if (di->pixfmt == IPU_PIX_FMT_RGB24)
++		fmt = rgb24;
++	else if (di->pixfmt == IPU_PIX_FMT_YUYV)
++		fmt = yuyv16;
++	else
++		fmt = rgb666;
++
++	if (di && ((fb == FB_RGB) || (fb == FB_LVDS0) || (fb == FB_LVDS1))) {
++#if defined(CONFIG_MX6SX) || defined(CONFIG_MX6UL) || defined(CONFIG_MX7D)
++		sz = snprintf(buf, size, "fdt set %s bus-width <%u>;", short_names[fb],
++				(di->pixfmt == IPU_PIX_FMT_RGB24) ? 24 : 18);
++
++#else
++		sz = snprintf(buf, size, "fdt set %s interface_pix_fmt %s;",
++				fbnames[fb], fmt);
++#endif
++		buf += sz;
++		size -= sz;
++	}
++
++	if (di && (fb == FB_RGB)) {
++		sz = snprintf(buf, size, "fdt set rgb default_ifmt %s;", fmt);
++		buf += sz;
++		size -= sz;
++	}
++
++	if (di && ((fb == FB_LVDS0) || (fb == FB_LVDS1))) {
++
++		sz = snprintf(buf, size, "fdt set %s fsl,data-width <%u>;",
++				ch_names[fb],
++				(di->pixfmt == IPU_PIX_FMT_RGB24) ? 24 : 18);
++		buf += sz;
++		size -= sz;
++
++		sz = snprintf(buf, size, "fdt set %s fsl,data-mapping %s;",
++				ch_names[fb],
++				(di->fbflags & FBF_JEIDA) ? "jeida" : "spwg");
++		buf += sz;
++		size -= sz;
++
++		if (di->fbflags & FBF_SPLITMODE) {
++			sz = snprintf(buf, size, "fdt set ldb split-mode 1;");
++			buf += sz;
++			size -= sz;
++		}
++	}
++
++	if (mode_str) {
++		snprintf(buf, size, "fdt set %s mode_str %s;", fbnames[fb], mode_str);
++		setenv(cmd_fbnames[fb], buf_start);
++		return;
++#ifdef CONFIG_MX6Q
++	} else if (fb == FB_RGB) {
++		sz = snprintf(buf, size, "fdt set %s mode_str eadisp_special;", fbnames[fb]);
++		buf += sz;
++		size -= sz;
++#endif
++	}
++
++	mode = &di->mode;
++	for (i = 0; i < ARRAY_SIZE(timings_properties); i++) {
++		u32 *p = (u32 *)((char *)mode + timings_offsets[i]);
++		u32 val;
++
++		if (i == 0) {
++			u64 lval = 1000000000000ULL;
++
++			do_div(lval, mode->pixclock);
++			val = (u32)lval;
++		} else {
++			val = *p;
++		}
++		sz = snprintf(buf, size, "fdt set %s %s <%u>;", timings_names[fb], timings_properties[i], val);
++		buf += sz;
++		size -= sz;
++	}
++	setenv(cmd_fbnames[fb], buf_start);
++}
++
++static const struct display_info_t *select_display(
++		const struct display_info_t *gdi, int cnt)
++{
++	const char* tmp = getenv("eadisp_prefer");
++	const char* enabled;
++	const struct display_info_t* di = NULL;
++	const struct display_info_t* first = NULL;
++	char *buf = malloc(4096);
++	int preferred_idx = -1;
++	int i;
++	uint32_t enmask = 0;
++
++	/* See if a preferred display is selected */
++	if (tmp) {
++		for (i = 0; i < FB_COUNT; i++) {
++			if (!strcmp(tmp, short_names[i])) {
++				preferred_idx = i;
++				break;
++			}
++		}
++	}
++
++	/* Enable/disable displays */
++	for (i = 0; i < NUM_FBS; i++) {
++		sprintf(buf, "eadisp_%s_enabled", short_names[i]);
++		enabled = getenv(buf);
++		tmp = getenv(fbnames[i]);
++		if (tmp) {
++			di = parse_mode(g_displays, g_display_cnt, tmp, i);
++			if (di) {
++				if (enabled && !strcmp(enabled, "yes")) {
++					setup_cmd_fb(i, di, buf, 4096);
++					enmask |= (1<<i);
++					if (!first || i==preferred_idx) {
++						first = di;
++					}
++					continue;
++				}
++			}
++		}
++		// disable
++		setup_cmd_fb(i, NULL, buf, 4096);
++	}
++
++#if defined(CONFIG_MX6Q)
++	// DTS has LVDS1 as primary, change that unless LVDS1 is preferred
++	if (enmask & (1<<FB_LVDS0)) {
++		if (preferred_idx!=FB_LVDS1 || !(enmask & (1<<FB_LVDS1))) {
++			// LVDS0 is preferred over the default LVDS1
++			tmp = getenv(cmd_fbnames[FB_LVDS0]);
++			snprintf(buf, 4096, "fdt rm %s primary;fdt set %s primary;%s",
++					 ch_names[FB_LVDS1], ch_names[FB_LVDS0], tmp);
++			setenv(cmd_fbnames[FB_LVDS0], buf);
++		}
++	}
++#endif
++
++	free(buf);
++	return first;
++}
++
++static void str_mode(char *p, int size, const struct display_info_t *di)
++{
++	int count;
++	int i;
++
++	if (!di) {
++		count = snprintf(p, size, "off");
++		if (size > count) {
++			p += count;
++			size -= count;
++		}
++		*p = 0;
++		return;
++	}
++	count = snprintf(p, size, "%s:", di->mode.name);
++	if (size > count) {
++		p += count;
++		size -= count;
++	}
++	if (di->fbflags & FBF_MODESTR) {
++		*p++ = 'm';
++		size--;
++	}
++	if (di->fbflags & FBF_JEIDA) {
++		*p++ = 'j';
++		size--;
++	}
++	if (di->fbflags & FBF_SPLITMODE) {
++		*p++ = 's';
++		size--;
++	}
++	count = snprintf(p, size, "%d:", (di->pixfmt == IPU_PIX_FMT_RGB24) ? 24 : 18);
++	if (size > count) {
++		p += count;
++		size -= count;
++	}
++
++	for (i = 0; i < ARRAY_SIZE(timings_properties); i++) {
++		u32 *src = (u32 *)((char *)&di->mode + timings_offsets[i]);
++		u32 val;
++
++		if (i == 0) {
++			u64 lval = 1000000000000ULL;
++
++			do_div(lval, di->mode.pixclock);
++			val = (u32)lval;
++		} else {
++			val = *src;
++			if (size > 1) {
++				*p++ = ',';
++				size--;
++			}
++		}
++		count = snprintf(p, size, "%d", val);
++		if (size > count) {
++			p += count;
++			size -= count;
++		}
++	}
++	*p = 0;
++}
++
++static void add_own_config(const struct display_info_t* di)
++{
++	if (di && found_own_displays < MAX_OWN_DISPLAYS) {
++		memcpy(&g_di_own[found_own_displays], di, sizeof(struct display_info_t));
++		memcpy(g_di_own_mode_str[found_own_displays], di->mode.name, strlen(di->mode.name)+1);
++		g_di_own[found_own_displays].mode.name = g_di_own_mode_str[found_own_displays];
++		found_own_displays++;
++	}
++}
++
++static void load_own_configs(void)
++{
++	int i, j;
++	char key[40];
++	char val[40];
++	const char* existing;
++	const struct display_info_t* di = NULL;
++	if (loaded_own_configs) {
++		return;
++	}
++	found_own_displays = 0;
++	for (i = 0; i < MAX_OWN_DISPLAYS; i++) {
++		sprintf(key, "eadisp_own_%d", i);
++		existing = getenv(key);
++		if (existing) {
++			for (j = 0; j < NUM_FBS; j++) {
++				sprintf(val, "%s:", short_names[j]);
++				if (!strncmp(val, existing, strlen(val))) {
++					di = parse_mode(g_displays, g_display_cnt, existing+strlen(val), j);
++					add_own_config(di);
++					break;
++				}
++			}
++		}
++	}
++	loaded_own_configs = 1;
++}
++
++static void store_own_configs(void)
++{
++	int i;
++	int saved = 0;
++	char key[40];
++	char *buf = malloc(4096);
++	for (i = 0; i < found_own_displays; i++) {
++		if (g_di_own[i].fbtype != FB_COUNT) {
++			sprintf(buf, "%s:", short_names[g_di_own[i].fbtype]);
++			str_mode(buf+strlen(buf), 256, &g_di_own[i]);
++			sprintf(key, "eadisp_own_%d", saved);
++			saved++;
++			setenv(key, buf);
++		}
++	}
++	for (i = saved; i < MAX_OWN_DISPLAYS; i++) {
++		sprintf(key, "eadisp_own_%d", i);
++		setenv(key, NULL);
++	}
++	free(buf);
++}
++
++static void print_current_config(void)
++{
++	int i;
++	char buf[50];
++	const char* msg;
++	int preferred = -1;
++	
++	msg = getenv("eadisp_prefer");
++	if (msg) {
++		for (i = 0; i < NUM_FBS; i++) {
++			if (!strcmp(msg, short_names[i])) {
++				preferred = i;
++				break;
++			}
++		}
++	}
++	printf("\nCurrent Selection:\n");
++	printf("\t\tenabled\tprefer\tconfiguration\n");
++	for (i = 0; i < NUM_FBS; i++) {
++		int enabled = 0;
++		sprintf(buf, "eadisp_%s_enabled", short_names[i]);
++		msg = getenv(buf);
++		if (msg && !strcmp(msg, "yes")) {
++			enabled = 1;
++		}
++		msg = getenv(fbnames[i]);
++		printf("\t%s:\t  %s\t  %s\t%s\n", short_names[i], enabled?"yes":"no ", preferred==i?"yes":"no ", msg?msg:"Not Configured");
++	}
++}
++
++static void print_modes(const struct display_info_t *di, int cnt)
++{
++	int i;
++	char buf[256];
++
++	printf("\nAvailable display configurations:\n");
++	for (i = 0; i < cnt; i++) {
++		str_mode(buf, sizeof(buf), di+i);
++		printf("   %2d) %5s  %s\n", i, short_names[(di+i)->fbtype], buf);
++	}
++	for (i = 0; i < found_own_displays; i++) {
++		str_mode(buf, sizeof(buf), &g_di_own[i]);
++		printf("   %2d) %5s  %s\n", i+cnt, short_names[g_di_own[i].fbtype], buf);
++	}
++
++	print_current_config();
++}
++
++void board_video_enable(void)
++{
++	const struct display_info_t *di = g_di_active;
++	if (di && di->enable)
++		di->enable(di, 1);
++}
++
++static int init_display(const struct display_info_t *di)
++{
++#if defined(CONFIG_MX6SX) || defined(CONFIG_MX6UL) || defined(CONFIG_MX7D)
++	uint32_t lcdif_base_addr = (di->fbtype==FB_RGB) ? LCDIF1_BASE_ADDR : LCDIF2_BASE_ADDR;
++	int bpp;
++	switch(di->pixfmt) {
++	case IPU_PIX_FMT_RGB666:
++	case IPU_PIX_FMT_BGR666:
++	case IPU_PIX_FMT_LVDS666:
++		bpp = 18;
++		break;
++	case IPU_PIX_FMT_RGB565:
++		bpp = 16;
++		break;
++	case IPU_PIX_FMT_LVDS888:
++	case IPU_PIX_FMT_BGR24:
++	case IPU_PIX_FMT_RGB24:
++		bpp = 24;
++		break;
++	default:
++		printf("LCD %s cannot be configured, invalid pixfmt 0x%08x\n",  di->mode.name, di->pixfmt);
++		return -EINVAL;
++	}
++	int ret = mxs_lcd_panel_setup(di->mode, bpp, lcdif_base_addr);
++#else
++	int ret = ipuv3_fb_init(&di->mode, 0, di->pixfmt);
++#endif
++	if (ret) {
++		printf("LCD %s cannot be configured: %d\n", di->mode.name, ret);
++		return -EINVAL;
++	}
++	printf("Display: %s:%s (%ux%u)\n", short_names[di->fbtype],
++			di->mode.name, di->mode.xres, di->mode.yres);
++	g_di_active = di;
++	board_video_enable();
++	return 0;
++}
++
++static void set_defaults(void)
++{
++	char buf[256];
++	int i, j;
++	for (i = 0; i < NUM_FBS; i++) {
++		if (!getenv(fbnames[i])) {
++			for (j = 0; j < g_display_cnt; j++) {
++				if (g_displays[j].fbtype == i) {
++					str_mode(buf, 256, &g_displays[j]);
++					setenv(fbnames[i], buf);
++					break;
++				}
++			}
++		}
++	}
++}
++
++static int do_eadisp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++{
++	int i;
++	int fb = -1;
++	int ret = CMD_RET_SUCCESS;
++	const char *cmd;
++	const char *fbname;
++	const struct display_info_t* di = g_displays;
++	int cnt = g_display_cnt;
++	char* buf;
++	load_own_configs();
++	if (argc < 2) {
++		print_modes(di, cnt);
++		return CMD_RET_SUCCESS;
++	}
++	if (argc < 3) {
++		return CMD_RET_USAGE;
++	}
++
++	cmd = argv[1];
++
++	if (!strcmp("rm", cmd)) {
++		if (argc == 3) {
++			int idx = simple_strtoul(argv[2], NULL, 10);
++			if (idx >= 0 && idx < cnt) {
++				printf("cannot remove builtin configs\n");
++				return CMD_RET_FAILURE;
++			}
++			idx = idx - cnt;
++			if (idx >= 0 && idx < found_own_displays) {
++				printf("removing %d - %s\n", idx+cnt, g_di_own[idx].mode.name);
++				g_di_own[idx].fbtype = FB_COUNT;
++				store_own_configs();
++				loaded_own_configs = 0;
++				load_own_configs();
++				return CMD_RET_SUCCESS;
++			}
++		}
++		return CMD_RET_USAGE;
++	}
++
++
++	fbname = argv[2];
++	for (i = 0; i < NUM_FBS; i++) {
++		if (!strcmp(short_names[i], fbname)) {
++			fb = i;
++			break;
++		}
++	}
++	if (fb < 0) {
++		return CMD_RET_USAGE;
++	}
++
++	buf = malloc(4096);
++	if (!buf) {
++		return -ENOMEM;
++	}
++	do {
++		if (!strcmp("prefer", cmd)) {
++			setenv("eadisp_prefer", fbname);
++			break;
++		} else if (!strcmp("enable", cmd)) {
++			sprintf(buf, "eadisp_%s_enabled", fbname);
++			setenv(buf, "yes");
++			break;
++		} else if (!strcmp("disable", cmd)) {
++			sprintf(buf, "eadisp_%s_enabled", fbname);
++			setenv(buf, "no");
++			break;
++		} else if (!strcmp("conf", cmd)) {
++			if (argc == 4) {
++				int idx = simple_strtoul(argv[3], NULL, 10);
++				if (idx >= 0 && idx < cnt) {
++					di = &g_displays[idx];
++				} else if (idx < (cnt+found_own_displays)) {
++					di = &g_di_own[idx-cnt];
++				} else {
++					printf("invalid index (%d) for %s\n", idx, fbname);
++					ret = CMD_RET_FAILURE;
++					break;
++				}
++				if (di->fbtype == fb) {
++					printf("selecting %s=%s\n", fbname, di->mode.name);
++					str_mode(buf, 256, di);
++					setenv(fbnames[fb], buf);
++					break;
++				} else {
++					printf("invalid index (%d) for %s (wrong type)\n", idx, fbname);
++					ret = CMD_RET_FAILURE;
++					break;
++				}
++			}
++		} else if (!strcmp("add", cmd)) {
++			if (argc == 4) {
++				const char *p = argv[3];
++				di = parse_mode(di, cnt, p, fb);
++				if (!di) {
++					printf("invalid format string\n");
++					ret = CMD_RET_FAILURE;
++					break;
++				}
++				if (found_own_displays < MAX_OWN_DISPLAYS) {
++					add_own_config(di);
++					store_own_configs();
++					loaded_own_configs = 0;
++					load_own_configs();
++					break;
++				} else {
++					printf("too many own configurations already - remove one and try again\n");
++					ret = CMD_RET_FAILURE;
++					break;
++				}
++			}
++		}
++		ret = CMD_RET_USAGE;
++
++	} while(0);
++	if (ret == CMD_RET_SUCCESS) {
++		// Update all variables
++		select_display(g_displays, g_display_cnt);
++		print_current_config();
++	}
++	free(buf);
++	return ret;
++}
++
++U_BOOT_CMD(eadisp, 4, 0, do_eadisp,
++		   "Configure Display Support",
++		   " - Show current configuration for all displays\n"
++		   "eadisp prefer "DISPTYPES" - Set preferred display\n"
++		   "eadisp enable "DISPTYPES" - Enable selected display\n"
++		   "eadisp disable "DISPTYPES" - Disable selected display\n"
++		   "eadisp conf "DISPTYPES" num - Select configuration for display\n"
++		   "eadisp add "DISPTYPES" [\"mode_str[:[m][j][s][18|24]:pixclkfreq,xres,yres,hback-porch,hfront-porch,vback-porch,vfront-porch,hsync,vsync]\"]\n"
++		   "eadisp rm num - Remove added configuration\n");
++
++int board_video_skip(void)
++{
++	set_defaults();
++	const struct display_info_t *di = select_display(g_displays, g_display_cnt);
++
++	if (!di) {
++		return -EINVAL;
++	}
++	int ret = init_display(di);
++	return ret;
++}
++
++void eadisp_setup_display(const struct display_info_t *displays, int cnt)
++{
++	g_displays = displays;
++	g_display_cnt = cnt;
++}
+diff --git a/arch/arm/imx-common/eatouch.c b/arch/arm/imx-common/eatouch.c
+new file mode 100644
+index 0000000..9d4dadc
+--- /dev/null
++++ b/arch/arm/imx-common/eatouch.c
+@@ -0,0 +1,298 @@
++/*
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <asm/errno.h>
++#include <asm/gpio.h>
++#include <asm/imx-common/eatouch.h>
++#include <asm/io.h>
++#include <div64.h>
++#include <i2c.h>
++#include <malloc.h>
++#include <stdlib.h>
++
++/*
++ * The board file should call eatouch_init() to
++ * load the selected touch controller information.
++ *
++ * The eatouch command supports enabling/disabling each available touch
++ * controller for each of the contacts on the board.
++ *
++ * The eatouch command does this by setting environment variables (XX stand for
++ * rgb,lvds0,lvds1):
++ * - cmd_ts_rgb          used by cmd_ts to modify device tree for the rgb contact
++ * - cmd_ts_lvds0        used by cmd_ts to modify device tree for the lvds0 contact
++ * - cmd_ts_lvds1        used by cmd_ts to modify device tree for the lvds1 contact
++ * - cmd_ts              main command, will be executed by bootscript prior to boot
++ */
++
++#define CONTACT_RGB    0
++#define CONTACT_LVDS0  1
++#define CONTACT_LVDS1  2
++
++#if defined(CONFIG_MX6SX)
++  #define CONTACTS        "(rgb|lvds0)"
++  #define NUM_CONTACTS    2  /* Only have 1x RGB and 1x LVDS on SoloX */
++#elif defined(CONFIG_MX6Q)
++  #define CONTACTS        "(rgb|lvds0|lvds1)"
++  #define NUM_CONTACTS    3
++#elif defined(CONFIG_MX6DL)
++  #define CONTACTS        "(rgb|lvds0|lvds1)"
++  #define NUM_CONTACTS    3
++#elif defined(CONFIG_MX6UL)
++  #define CONTACTS        "rgb"
++  #define NUM_CONTACTS    1  /* Only have 1x RGB on UltraLite */
++#elif defined(CONFIG_MX7D)
++  #define CONTACTS        "rgb"
++  #define NUM_CONTACTS    1  /* Only have 1x RGB on 7 Dual */
++#else
++  #error Unsupported hardware
++#endif
++
++static const char *const cmd_names[] = {
++[CONTACT_RGB] = "cmd_ts_rgb",
++[CONTACT_LVDS0] = "cmd_ts_lvds0",
++[CONTACT_LVDS1] = "cmd_ts_lvds1",
++};
++
++static const char *const contact_names[] = {
++[CONTACT_RGB] = "rgb",
++[CONTACT_LVDS0] = "lvds0",
++[CONTACT_LVDS1] = "lvds1",
++};
++
++static const char *const short_names[] = {
++[TOUCH_AR1021] = "ar1021",
++[TOUCH_EGALAX] = "egalax",
++[TOUCH_ILITEK] = "ilitek",
++[TOUCH_SITRONIX] = "sitronix",
++};
++
++static struct touch_info_t controllers[NUM_CONTACTS][TOUCH_COUNT] = {
++	{ EATOUCH_ALL_CONTROLLERS(rgb)   },
++#if NUM_CONTACTS > 1
++	{ EATOUCH_ALL_CONTROLLERS(lvds0) },
++#if NUM_CONTACTS > 2
++	{ EATOUCH_ALL_CONTROLLERS(lvds1) },
++#endif
++#endif
++};
++
++#define TOUCH_DISABLED  (-1)
++#define TOUCH_ENV_CMD   "cmd_ts"
++#define TOUCH_ENV_SEL   "eatouch_selected"
++
++
++static void print_current_config(void)
++{
++	int i, j;
++
++	printf("\nCurrent Setup:\n");
++	printf("\t%10s\t", "");
++	for (i = 0; i < NUM_CONTACTS; i++) {
++		printf("%s contact\t", contact_names[i]);
++	}
++	printf("\n");
++	
++	for (i = 0; i < TOUCH_COUNT; i++) {
++		printf("\t%10s", short_names[i]);
++		for (j = 0; j < NUM_CONTACTS; j++) {
++			if (controllers[j][i].enabled) {
++				printf("\tEnabled 0x%02x", controllers[j][i].addr);
++			} else {
++				printf("\t  Disabled");
++			}
++		}
++		printf("\n");
++	}
++}
++
++static void print_status(void)
++{
++	int i;
++
++	printf("\nAvailable Touch Controllers:\n");
++	for (i = 0; i < TOUCH_COUNT; i++) {
++		printf("   %2d) %s\n", i+1, short_names[i]);
++	}
++
++	print_current_config();
++}
++
++static void load_selection(void)
++{
++	int i, j;
++	int valid = 0;
++	const char* env = getenv(TOUCH_ENV_SEL);
++	if (env) {
++		valid = 1;
++		for (i = 0; i < NUM_CONTACTS; i++) {
++			for (j = 0; j < TOUCH_COUNT; j++) {
++				if (*env == 'E') {
++					controllers[i][j].enabled = 1;
++					env++;
++				} else if (*env == '-') {
++					controllers[i][j].enabled = 0;
++					env++;
++				} else {
++					printf("Illegal touch configuration, turning all off\n");
++					setenv(TOUCH_ENV_SEL, NULL);
++					valid = 0;
++					break;
++				}
++			}
++			if (!valid) {
++				break;
++			}
++		}
++	}
++	
++	if (!valid) {
++		for (i = 0; i < NUM_CONTACTS; i++) {
++			for (j = 0; j < TOUCH_COUNT; j++) {
++				controllers[i][j].enabled = 0;
++			}
++		}
++	}
++}
++
++static void save_selection(void)
++{
++	char buf[NUM_CONTACTS * TOUCH_COUNT + 1];
++	int i, j;
++	char* p = &buf[0];
++
++	for (i = 0; i < NUM_CONTACTS; i++) {
++		for (j = 0; j < TOUCH_COUNT; j++) {
++			if (controllers[i][j].enabled) {
++				*p++ = 'E';
++			} else {
++				*p++ = '-';
++			}
++		}
++	}
++	*p = '\0';
++	setenv(TOUCH_ENV_SEL, buf);
++}
++
++static void update_commands(void)
++{
++	char* buf = malloc(4096);
++	char* p;
++	int i, j, count;
++	int size;
++
++	if (!buf) {
++		printf("Failed to allocate memory for eatouch command\n");
++	}
++
++	for (i = 0; i < NUM_CONTACTS; i++) {
++		p = buf;
++		size = 4096;
++		for (j = 0; j < TOUCH_COUNT; j++) {
++			if (controllers[i][j].enabled) {
++				count = snprintf(p, size, "fdt set %s status okay; fdt set %s reg <0x%x>; ", controllers[i][j].alias, controllers[i][j].alias, controllers[i][j].addr);
++			} else {
++				count = snprintf(p, size, "fdt set %s status disabled; ", controllers[i][j].alias);
++			}
++			p += count;
++			size -= count;
++		}
++		setenv(cmd_names[i], buf);
++	}
++	p = buf;
++	size = 4096;
++	for (i = 0; i < NUM_CONTACTS; i++) {
++		count = snprintf(p, size, "run %s; ", cmd_names[i]);
++		p += count;
++		size -= count;
++	}
++	setenv(TOUCH_ENV_CMD, buf);
++
++	free(buf);
++}
++
++static int do_eatouch(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++{
++	int i;
++	const char *cmd;
++
++	if (argc == 1) {
++		print_status();
++		return CMD_RET_SUCCESS;
++	}
++	if (argc < 3) {
++		return CMD_RET_USAGE;
++	}
++
++	cmd = argv[1];
++
++	if (!strcmp("enable", cmd) || !strcmp("disable", cmd)) {
++		int enable = !strcmp("enable", cmd);
++		if (argc == 4) {
++			for (i = 0; i < NUM_CONTACTS; i++) {
++				if (!strcmp(argv[2], contact_names[i])) {
++					int idx = simple_strtoul(argv[3], NULL, 10);
++					//printf("'%s', '%s', '%s', '%s' (%d)\n", argv[0], argv[1], argv[2], argv[3], idx);
++					if (idx >= 1 && idx <= TOUCH_COUNT) {
++						controllers[i][idx-1].enabled = enable;
++					} else {
++						printf("Invalid controller number '%s', should be 1<=num<=%d\n", argv[3], TOUCH_COUNT);
++					}
++					save_selection();
++					update_commands();
++					print_current_config();
++					return CMD_RET_SUCCESS;
++				}
++			}
++			printf("Invalid contact name '%s'\n", argv[2]);
++		}
++		return CMD_RET_USAGE;
++	}
++
++	// Hidden command to change i2c address for a controller. Will not survive a reboot/reset
++	// so the mod command must be followed by a 'boot' command to take effect.
++	if (!strcmp("mod", cmd)) {
++		if (argc == 4) {
++			int ctrl = simple_strtoul(argv[2], NULL, 10);
++			if (ctrl >= 1 && ctrl <= TOUCH_COUNT) {
++				ctrl--;
++				int addr = simple_strtoul(argv[3], NULL, 10);
++				if (addr >= 0x01 && addr <= 0xff) {
++					int contact;
++					printf("Changing I2C address of %s to 0x%x\n", short_names[ctrl], addr);
++					for (contact = 0; contact < NUM_CONTACTS; contact++) {
++						controllers[contact][ctrl].addr = addr;
++					}
++					save_selection();
++					update_commands();
++					print_current_config();
++					return CMD_RET_SUCCESS;
++				} else {
++					printf("Invalid i2c addr '%s', should be 0x01<=num<=0xff\n", argv[3]);
++				}
++			} else {
++				printf("Invalid controller number '%s', should be 1<=num<=%d\n", argv[2], TOUCH_COUNT);
++			}
++		}
++		printf("usage:\n\teatouch mod num newaddr\n");
++		return CMD_RET_FAILURE;
++	}
++
++	return CMD_RET_USAGE;
++}
++
++
++U_BOOT_CMD(eatouch, 4, 0, do_eatouch,
++		   "Configure Touch Controller Support for each contact",
++		   " - Show current configuration\n"
++		   "eatouch disable "CONTACTS" num - Disable touch controller from list for contact\n"
++		   "eatouch enable "CONTACTS" num - Enable touch controller from list for contact\n");
++
++
++void eatouch_init(void)
++{
++	load_selection();
++	update_commands();
++}
 diff --git a/arch/arm/imx-common/spl.c b/arch/arm/imx-common/spl.c
 index ac6e40e..83e34e9 100644
 --- a/arch/arm/imx-common/spl.c
@@ -127,6 +1323,386 @@ index ac6e40e..83e34e9 100644
  #endif
  
  #if defined(CONFIG_SPL_MMC_SUPPORT)
+diff --git a/arch/arm/include/asm/imx-common/eadisp.h b/arch/arm/include/asm/imx-common/eadisp.h
+new file mode 100644
+index 0000000..0d0413a
+--- /dev/null
++++ b/arch/arm/include/asm/imx-common/eadisp.h
+@@ -0,0 +1,329 @@
++/*
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#ifndef __EADISP_H_
++#define __EADISP_H_
++
++#include <linux/fb.h>
++#include <ipu_pixfmt.h>
++
++struct display_info_t {
++	int	bus;	/* (bus >> 8) is gpio to enable bus if <>0 */
++	int	addr;
++	int	pixfmt;
++	int	(*detect)(struct display_info_t const *dev);
++	void	(*enable)(struct display_info_t const *dev, int enable);
++
++#define FB_RGB		0
++#define FB_LVDS0	1
++#define FB_LVDS1	2
++#define FB_HDMI		3
++#define FB_COUNT	4
++	int	fbtype;
++
++#define FBF_MODESTR		1
++#define FBF_JEIDA		2
++#define FBF_SPLITMODE	4
++	int	fbflags;
++	struct	fb_videomode mode;
++};
++
++void board_enable_hdmi(const struct display_info_t *di, int enable);
++void board_enable_lcd(const struct display_info_t *di, int enable);
++void board_enable_lvds0(const struct display_info_t *di, int enable);
++void board_enable_lvds1(const struct display_info_t *di, int enable);
++
++void eadisp_enable_fb(struct display_info_t const *di, int enable);
++int eadisp_detect_i2c(struct display_info_t const *di);
++void eadisp_setup_display(const struct display_info_t *displays, int cnt);
++
++#define EADISP_HANNSTAR10(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0x4,\
++	.pixfmt	= IPU_PIX_FMT_RGB666,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.mode	= {\
++		.name           = "hannstar",\
++		.refresh        = 60,\
++		.xres           = 1024,\
++		.yres           = 768,\
++		.pixclock       = 1000000000000ULL/((1024+220+40+60)*(768+21+7+10)*60),\
++		.left_margin    = 220,\
++		.right_margin   = 40,\
++		.upper_margin   = 21,\
++		.lower_margin   = 7,\
++		.hsync_len      = 60,\
++		.vsync_len      = 10,\
++		.sync           = FB_SYNC_EXT,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_INNOLUX_AT070TN(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.mode	= {\
++		.name           = "Innolux-AT070TN",\
++		.refresh        = 49,\
++		.xres           = 800,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((800+89+164+10)*(480+75+75+10)*49),\
++		.left_margin    = 89,\
++		.right_margin   = 164,\
++		.upper_margin   = 75,\
++		.lower_margin   = 75,\
++		.hsync_len      = 10,\
++		.vsync_len      = 10,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_NHD_50800480TF(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.mode	= {\
++		.name           = "nhd-5.0-800480tf",\
++		.refresh        = 60,\
++		.xres           = 800,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((800+88+40+10)*(480+32+13+10)*60),\
++		.left_margin    = 88,\
++		.right_margin   = 40,\
++		.upper_margin   = 32,\
++		.lower_margin   = 13,\
++		.hsync_len      = 10,\
++		.vsync_len      = 10,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_UMSH_8864(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.mode	= {\
++		.name           = "umsh-8864",\
++		.refresh        = 55,\
++		.xres           = 480,\
++		.yres           = 272,\
++		.pixclock       = 1000000000000ULL/((480+20+20+3)*(272+20+20+3)*55),\
++		.left_margin    = 20,\
++		.right_margin   = 20,\
++		.upper_margin   = 20,\
++		.lower_margin   = 20,\
++		.hsync_len      = 3,\
++		.vsync_len      = 3,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_UMSH_8596_30T(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.mode	= {\
++		.name           = "umsh-8596-30t",\
++		.refresh        = 60,\
++		.xres           = 800,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((800+128+120+8)*(480+20+20+5)*60),\
++		.left_margin    = 128,\
++		.right_margin   = 120,\
++		.upper_margin   = 20,\
++		.lower_margin   = 20,\
++		.hsync_len      = 8,\
++		.vsync_len      = 5,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_UMSH_8596_33T(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.mode	= {\
++		.name           = "umsh-8596-33t",\
++		.refresh        = 48,\
++		.xres           = 800,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((800+200+200+1)*(480+45+45+1)*48),\
++		.left_margin    = 200,\
++		.right_margin   = 200,\
++		.upper_margin   = 45,\
++		.lower_margin   = 45,\
++		.hsync_len      = 1,\
++		.vsync_len      = 1,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_ROGIN_RX050A(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.mode	= {\
++		.name           = "rogin-rx050a",\
++		.refresh        = 48,\
++		.xres           = 800,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((800+200+200+1)*(480+45+45+1)*48),\
++		.left_margin    = 200,\
++		.right_margin   = 200,\
++		.upper_margin   = 45,\
++		.lower_margin   = 45,\
++		.hsync_len      = 1,\
++		.vsync_len      = 1,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++/* hdmi settings */
++#define EADISP_HDMI_1280_720M_60(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0x50,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = FBF_MODESTR,\
++	.mode	= {\
++		.name           = "1280x720M@60",\
++		.refresh        = 60,\
++		.xres           = 1280,\
++		.yres           = 720,\
++		.pixclock       = 1000000000000ULL/((1280+216+72+80)*(720+22+3+5)*60),\
++		.left_margin    = 220,\
++		.right_margin   = 110,\
++		.upper_margin   = 20,\
++		.lower_margin   = 5,\
++		.hsync_len      = 40,\
++		.vsync_len      = 5,\
++		.sync           = FB_SYNC_EXT,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++
++#define EADISP_HDMI_1920_1080M_60(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0x50,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = FBF_MODESTR,\
++	.mode	= {\
++		.name           = "1920x1080M@60",\
++		.refresh        = 60,\
++		.xres           = 1920,\
++		.yres           = 1080,\
++		.pixclock       = 1000000000000ULL/((1920+148+88+44)*(1080+36+4+5)*60),\
++		.left_margin    = 148,\
++		.right_margin   = 88,\
++		.upper_margin   = 36,\
++		.lower_margin   = 4,\
++		.hsync_len      = 44,\
++		.vsync_len      = 5,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_HDMI_640_480M_60(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0x50,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = FBF_MODESTR,\
++	.mode	= {\
++		.name           = "640x480M@60",\
++		.refresh        = 60,\
++		.xres           = 640,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((640+48+16+96)*(480+33+10+2)*60),\
++		.left_margin    = 48,\
++		.right_margin   = 16,\
++		.upper_margin   = 33,\
++		.lower_margin   = 10,\
++		.hsync_len      = 96,\
++		.vsync_len      = 2,\
++		.sync           = FB_SYNC_EXT,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_HDMI_720_480M_60(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0x50,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = FBF_MODESTR,\
++	.mode	= {\
++		.name           = "720x480M@60",\
++		.refresh        = 60,\
++		.xres           = 720,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((720+60+16+62)*(480+30+9+6)*60),\
++		.left_margin    = 60,\
++		.right_margin   = 16,\
++		.upper_margin   = 30,\
++		.lower_margin   = 9,\
++		.hsync_len      = 62,\
++		.vsync_len      = 6,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++
++#endif /* __EADISP_H_ */
+diff --git a/arch/arm/include/asm/imx-common/eatouch.h b/arch/arm/include/asm/imx-common/eatouch.h
+new file mode 100644
+index 0000000..a7a7623
+--- /dev/null
++++ b/arch/arm/include/asm/imx-common/eatouch.h
+@@ -0,0 +1,39 @@
++/*
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#ifndef __EATOUCH_H_
++#define __EATOUCH_H_
++
++
++struct touch_info_t {
++	int     enabled;
++	int	    addr;
++
++#define TOUCH_AR1021    0
++#define TOUCH_ILITEK    1
++#define TOUCH_SITRONIX  2
++#define TOUCH_EGALAX    3
++#define TOUCH_COUNT     4
++	int	    type;
++
++	const char* alias;
++};
++
++void eatouch_init(void);
++
++#define EATOUCH_CONTROLLER(_contact, _addr, _type, _tname) \
++{ \
++	.enabled = 0, \
++	.addr	 = _addr, \
++	.type	 = _type,\
++	.alias	 = "ts_con_" #_contact "/" #_tname "_" #_contact \
++}
++
++#define EATOUCH_ALL_CONTROLLERS(_contact) \
++	EATOUCH_CONTROLLER(_contact, 0x4d, TOUCH_AR1021,   ar1021),\
++	EATOUCH_CONTROLLER(_contact, 0x41, TOUCH_ILITEK,   ilitek_aim),\
++	EATOUCH_CONTROLLER(_contact, 0x55, TOUCH_SITRONIX, sitronix),\
++	EATOUCH_CONTROLLER(_contact, 0x04, TOUCH_EGALAX,   egalax_ts)
++
++#endif /* __EATOUCH_H_ */
 diff --git a/board/embeddedartists/common/Makefile b/board/embeddedartists/common/Makefile
 new file mode 100644
 index 0000000..4a9d311
@@ -145,6 +1721,82 @@ index 0000000..4a9d311
 +obj-y  += mx6ea_eeprom.o
 +obj-y  += mx6ea-com_spl.o
 +
+diff --git a/board/embeddedartists/common/bootscript.txt b/board/embeddedartists/common/bootscript.txt
+new file mode 100644
+index 0000000..704da53
+--- /dev/null
++++ b/board/embeddedartists/common/bootscript.txt
+@@ -0,0 +1,70 @@
++setenv args_from_script ''
++
++#if load ${dtype} ${disk}:1 ${a_script} uEnv.txt ; then
++#    env import -t ${a_script} ${filesize}
++#fi
++
++
++if run loadfdt ; then
++	fdt addr ${fdt_addr}
++	setenv fdt_high 0xffffffff
++else
++	echo "!!!! Error loading ${fdt_file}";
++	exit;
++fi
++	
++
++fdt resize
++if itest.s "x" != "x${cmd_custom}" ; then
++	run cmd_custom
++fi
++
++if itest.s "x" != "x${cmd_hdmi}" ; then
++	run cmd_hdmi
++	if itest.s x == x${allow_noncea} ; then
++		setenv args_from_script ${args_from_script} mxc_hdmi.only_cea=1;
++		echo "only CEA modes allowed on HDMI port";
++	else
++		setenv args_from_script ${args_from_script} mxc_hdmi.only_cea=0;
++		echo "non-CEA modes allowed on HDMI, audio may be affected";
++	fi
++fi
++
++if itest.s "x" != "x${cmd_rgb}" ; then
++	run cmd_rgb
++fi
++if itest.s "x" != "x${cmd_lvds0}" ; then
++	run cmd_lvds0
++fi
++if itest.s "x" != "x${cmd_lvds1}" ; then
++	run cmd_lvds1
++fi
++
++if itest.s "x" != "x${cmd_ts}" ; then
++	run cmd_ts
++fi
++
++if itest.s "x" != "x${extra_bootargs}" ; then
++	setenv args_from_script "${args_from_script} ${extra_bootargs}"
++fi
++
++if itest.s "x" != "x${show_fdt}" ; then
++	fdt print /
++fi
++
++if itest.s "x" != "x${show_env}" ; then
++	printenv
++fi
++
++if itest.s "x" != "x${skip_booting}" ; then
++	echo "!!!! Selected to skip booting !!!!";
++	echo "!!!! Unset skip_booting variable to enable booting again !!!!";
++	exit;
++fi
++
++if run loadimage; then
++	run mmcargs;
++	bootz ${loadaddr} - ${fdt_addr}
++fi
++
++echo "Error loading kernel image"
 diff --git a/board/embeddedartists/common/mx6ea-com_spl.c b/board/embeddedartists/common/mx6ea-com_spl.c
 new file mode 100644
 index 0000000..6ae8f6c
@@ -1137,10 +2789,10 @@ index 0000000..103dd3f
 +#endif
 diff --git a/board/embeddedartists/mx6qea-com/mx6qea-com.c b/board/embeddedartists/mx6qea-com/mx6qea-com.c
 new file mode 100644
-index 0000000..e6923fa
+index 0000000..8e0aaff
 --- /dev/null
 +++ b/board/embeddedartists/mx6qea-com/mx6qea-com.c
-@@ -0,0 +1,1646 @@
+@@ -0,0 +1,1777 @@
 +/*
 + * Copyright (C) 2012-2014 Freescale Semiconductor, Inc.
 + *
@@ -1158,6 +2810,10 @@ index 0000000..e6923fa
 +#include <asm/gpio.h>
 +#include <asm/imx-common/iomux-v3.h>
 +#include <asm/imx-common/boot_mode.h>
++#if defined(CONFIG_CMD_EADISP)
++#include <asm/imx-common/eadisp.h>
++#include <asm/imx-common/eatouch.h>
++#endif
 +#include <mmc.h>
 +#include <fsl_esdhc.h>
 +#include <miiphy.h>
@@ -1252,7 +2908,7 @@ index 0000000..e6923fa
 +
 +	if (ea_eeprom_get_config(&config) == 0) {
 +		/* ddr_size is given in MB */
-+		gd->ram_size = (config.ddr_size << 20); 
++		gd->ram_size = (config.ddr_size << 20);
 +	}
 +
 +	return 0;
@@ -1450,6 +3106,21 @@ index 0000000..e6923fa
 +}
 +
 +#ifdef CONFIG_SYS_I2C_MXC
++
++static int disable_ar1021(void)
++{
++        unsigned char cmd[] = { 0x55, 0x01, 0x13 };
++
++        i2c_set_bus_num(0);
++        if (!i2c_probe(0x4d)) {
++
++                if (i2c_write(0x4d, 0x00, 1, cmd, 3)) {
++                        printf("Failed to disable AR1021!\n");
++                        return -1;
++                }
++	}
++	return 0;
++}
 +
 +/* set all switches APS in normal and PFM mode in standby */
 +static int setup_pmic_mode(int chip)
@@ -2171,6 +3842,131 @@ index 0000000..e6923fa
 +}
 +
 +#if defined(CONFIG_VIDEO_IPUV3)
++
++static iomux_v3_cfg_t const display_ctrl_pads[] = {
++	/* Display enable for LVDS0 and Parallel RGB */
++	MX6_PAD_EIM_BCLK__GPIO6_IO31 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define DISPENABLE_GP_LVDS0_RGB  IMX_GPIO_NR(6, 31)
++
++	/* Display enable for LVDS1 */
++	MX6_PAD_EIM_D20__GPIO3_IO20 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define DISPENABLE_GP_LVDS1  IMX_GPIO_NR(3, 20)
++
++
++	/* LVDS0 and LVDS1 Brightness (gpio instead of PWM1, duty cycle = period) */
++	MX6_PAD_SD1_DAT3__GPIO1_IO21 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BRIGHTNESS_GP_LVDSx  IMX_GPIO_NR(1, 21)
++
++	/* Parallel RGB Brightness (gpio instead of PWM2, duty cycle = period) */
++	MX6_PAD_SD1_DAT2__GPIO1_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BRIGHTNESS_GP_RGB  IMX_GPIO_NR(1, 19)
++
++
++	/* Backlight Power Enable for LVDS0 and Parallel RGB */
++	MX6_PAD_EIM_WAIT__GPIO5_IO00 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BACKLIGHT_GP_LVDS0_RGB  IMX_GPIO_NR(5, 0)
++
++	/* Backlight Power Enable for LVDS1 */
++	MX6_PAD_EIM_LBA__GPIO2_IO27 | MUX_PAD_CTRL(NO_PAD_CTRL),
++#define BACKLIGHT_GP_LVDS1  IMX_GPIO_NR(2, 27)
++};
++
++#ifdef CONFIG_CMD_EADISP
++
++void board_enable_rgb(const struct display_info_t *di, int enable)
++{
++	if (enable) {
++		/* Setup pads for RGB */
++		imx_iomux_v3_setup_multiple_pads(rgb_pads, ARRAY_SIZE(rgb_pads));
++
++		/* Default interface is LVDS1 so pinning must be changed */
++		gpio_direction_output(DISPENABLE_GP_LVDS0_RGB, 1);
++		gpio_direction_output(BRIGHTNESS_GP_LVDSx, 0);
++		gpio_direction_output(BRIGHTNESS_GP_RGB, 1);
++		gpio_direction_output(BACKLIGHT_GP_LVDS0_RGB, 1);
++	}
++}
++void board_enable_lvds0(const struct display_info_t *di, int enable)
++{
++	if (enable) {
++		/* Default is lvds1 so change that to lvds0 */
++		struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
++
++		int reg = readl(&iomux->gpr[2]);
++
++		reg &= ~(IOMUXC_GPR2_LVDS_CH0_MODE_MASK |
++			 IOMUXC_GPR2_LVDS_CH1_MODE_MASK);
++		reg |= (IOMUXC_GPR2_LVDS_CH0_MODE_ENABLED_DI0 |
++			IOMUXC_GPR2_LVDS_CH1_MODE_DISABLED);
++
++		writel(reg, &iomux->gpr[2]);
++
++		reg = readl(&iomux->gpr[3]);
++		reg &= ~(IOMUXC_GPR3_LVDS0_MUX_CTL_MASK |
++			 IOMUXC_GPR3_LVDS1_MUX_CTL_MASK |
++			 IOMUXC_GPR3_HDMI_MUX_CTL_MASK);
++		reg |= (IOMUXC_GPR3_MUX_SRC_IPU1_DI0
++			   << IOMUXC_GPR3_LVDS0_MUX_CTL_OFFSET);
++
++		writel(reg, &iomux->gpr[3]);
++
++		/* Now change pinning as well */
++		gpio_direction_output(DISPENABLE_GP_LVDS0_RGB, 1);
++		gpio_direction_output(BRIGHTNESS_GP_LVDSx, 1);
++		gpio_direction_output(BRIGHTNESS_GP_RGB, 0);
++		gpio_direction_output(BACKLIGHT_GP_LVDS0_RGB, 1);
++	}
++}
++
++void board_enable_lvds1(const struct display_info_t *di, int enable)
++{
++	if (enable) {
++		/* Default interface so only pinning is needed */
++		gpio_direction_output(DISPENABLE_GP_LVDS1, 1);
++		gpio_direction_output(BRIGHTNESS_GP_LVDSx, 1);
++		gpio_direction_output(BACKLIGHT_GP_LVDS1, 1);
++	}
++}
++
++void board_enable_hdmi(const struct display_info_t *di, int enable)
++{
++	if (enable) {
++		/* Default is lvds1 so disable it */
++		struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
++
++		int reg = readl(&iomux->gpr[2]);
++
++		reg &= ~(IOMUXC_GPR2_LVDS_CH0_MODE_MASK |
++			 IOMUXC_GPR2_LVDS_CH1_MODE_MASK);
++
++		writel(reg, &iomux->gpr[2]);
++
++		/* Now enable HDMI */
++		imx_enable_hdmi_phy();
++	}
++}
++
++static const struct display_info_t displays[] = {
++	/* LVDS */
++	EADISP_HANNSTAR10(LVDS0, 0, 0),
++	EADISP_HANNSTAR10(LVDS1, 0, 0),
++
++	/* RGB */
++	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_UMSH_8864(RGB, 0, 0),
++	EADISP_UMSH_8596_30T(RGB, 0, 0),
++	EADISP_UMSH_8596_33T(RGB, 0, 0),
++	EADISP_ROGIN_RX050A(RGB, 0, 0),
++
++	/* HDMI */
++	EADISP_HDMI_1280_720M_60(HDMI, 0, 0),
++	EADISP_HDMI_1920_1080M_60(HDMI, 0, 0),
++	EADISP_HDMI_640_480M_60(HDMI, 0, 0),
++	EADISP_HDMI_720_480M_60(HDMI, 0, 0),
++};
++
++#else  /* CONFIG_CMD_EADISP */
 +struct display_info_t {
 +	int	bus;
 +	int	addr;
@@ -2191,34 +3987,6 @@ index 0000000..e6923fa
 +
 +	writel(reg, &iomux->gpr[2]);
 +}
-+
-+static iomux_v3_cfg_t const display_ctrl_pads[] = {
-+	/* Display enable for LVDS0 and Parallel RGB */
-+	MX6_PAD_EIM_BCLK__GPIO6_IO31 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+#define DISPENABLE_GP_LVDS0_RGB  IMX_GPIO_NR(6, 31)
-+
-+	/* Display enable for LVDS1 */
-+	MX6_PAD_EIM_D20__GPIO3_IO20 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+#define DISPENABLE_GP_LVDS1  IMX_GPIO_NR(3, 20)
-+
-+
-+	/* LVDS0 and LVDS1 Brightness (gpio instead of PWM1, duty cycle = period) */
-+	MX6_PAD_SD1_DAT3__GPIO1_IO21 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+#define BRIGHTNESS_GP_LVDSx  IMX_GPIO_NR(1, 21)
-+	
-+	/* Parallel RGB Brightness (gpio instead of PWM2, duty cycle = period) */
-+	MX6_PAD_SD1_DAT2__GPIO1_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+#define BRIGHTNESS_GP_RGB  IMX_GPIO_NR(1, 19)
-+	
-+
-+	/* Backlight Power Enable for LVDS0 and Parallel RGB */
-+	MX6_PAD_EIM_WAIT__GPIO5_IO00 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+#define BACKLIGHT_GP_LVDS0_RGB  IMX_GPIO_NR(5, 0)
-+	
-+	/* Backlight Power Enable for LVDS1 */
-+	MX6_PAD_EIM_LBA__GPIO2_IO27 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+#define BACKLIGHT_GP_LVDS1  IMX_GPIO_NR(2, 27)
-+};
 +
 +static void do_enable_lvds0(struct display_info_t const *dev)
 +{
@@ -2404,6 +4172,7 @@ index 0000000..e6923fa
 +
 +	return 0;
 +}
++#endif  /* CONFIG_CMD_EADISP */
 +
 +static void setup_display(void)
 +{
@@ -2512,6 +4281,12 @@ index 0000000..e6923fa
 +	/* enable USB 5V. Doesn't seem to work to do this in Linux/DTS?? */
 +	gpio_direction_output(IMX_GPIO_NR(1, 0), 1);
 +
++        /* Empty UART RX FIFO 5ms after PERI_PWR_ENABLE goes high */
++        udelay(5000);
++        while (tstc()) {
++                (void)getc();
++        }
++
 +	setup_iomux_uart();
 +#if defined(CONFIG_VIDEO_IPUV3)
 +	setup_display();
@@ -2527,12 +4302,12 @@ index 0000000..e6923fa
 +
 +// Configuration parameters are stored in I2C mapped eeprom and
 +// must be initialized here since the configuration is accessed
-+// early in the boot sequence	
++// early in the boot sequence
 +#ifdef CONFIG_SYS_I2C_MXC
 +	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info0);
 +#endif
 +
-+	ea_eeprom_init();	
++	ea_eeprom_init();
 +
 +	return 0;
 +}
@@ -2545,7 +4320,9 @@ index 0000000..e6923fa
 +#if defined(CONFIG_MX6DL) && defined(CONFIG_MXC_EPDC)
 +	setup_epdc();
 +#endif
-+
++#ifdef CONFIG_CMD_EADISP
++	eadisp_setup_display(displays, ARRAY_SIZE(displays));
++#endif
 +	return 0;
 +}
 +
@@ -2574,6 +4351,12 @@ index 0000000..e6923fa
 +	board_late_mmc_env_init();
 +#endif
 +
++#ifdef CONFIG_CMD_EADISP
++	eatouch_init();
++#endif
++#ifdef CONFIG_SYS_I2C_MXC
++	disable_ar1021();
++#endif
 +	return 0;
 +}
 +
@@ -2581,14 +4364,14 @@ index 0000000..e6923fa
 +{
 +	ea_eeprom_config_t config;
 +
-+	puts ("Board: Embedded Artists ");	
++	puts ("Board: Embedded Artists ");
 +	if (ea_eeprom_get_config(&config) == 0) {
 +
 +		printf("%s\n", config.name);
-+		printf("       %05d, %s, WO%d\n", 
-+			config.board_part_nr, 
-+			config.board_rev, 
-+			config.batch);	
++		printf("       %05d, %s, WO%d\n",
++			config.board_part_nr,
++			config.board_rev,
++			config.batch);
 +
 +	}
 +	else {
@@ -3483,10 +5266,10 @@ index 0000000..35e4cd3
 +#endif
 diff --git a/board/embeddedartists/mx6sxea-com/mx6sxea-com.c b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 new file mode 100644
-index 0000000..3539f85
+index 0000000..4822e2a
 --- /dev/null
 +++ b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
-@@ -0,0 +1,1201 @@
+@@ -0,0 +1,1295 @@
 +/*
 + * Copyright (C) 2014 Freescale Semiconductor, Inc.
 + *
@@ -3501,6 +5284,10 @@ index 0000000..3539f85
 +#include <asm/gpio.h>
 +#include <asm/imx-common/iomux-v3.h>
 +#include <asm/imx-common/boot_mode.h>
++#if defined(CONFIG_CMD_EADISP)
++#include <asm/imx-common/eadisp.h>
++#include <asm/imx-common/eatouch.h>
++#endif
 +#include <asm/io.h>
 +#include <linux/sizes.h>
 +#include <common.h>
@@ -3534,7 +5321,6 @@ index 0000000..3539f85
 +#endif /*CONFIG_FSL_FASTBOOT*/
 +
 +#include "../common/mx6ea_eeprom.h"
-+
 +
 +DECLARE_GLOBAL_DATA_PTR;
 +
@@ -3948,7 +5734,7 @@ index 0000000..3539f85
 +
 +	/* Use GPIO for Brightness adjustment, duty cycle = period */
 +	MX6_PAD_USB_H_STROBE__GPIO7_IO_11 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+	
++
 +	/* Backlight power enable */
 +	MX6_PAD_GPIO1_IO09__GPIO1_IO_9 | MUX_PAD_CTRL(NO_PAD_CTRL),
 +};
@@ -3994,6 +5780,63 @@ index 0000000..3539f85
 +	MX6_PAD_GPIO1_IO09__GPIO1_IO_9 | MUX_PAD_CTRL(NO_PAD_CTRL),
 +};
 +
++
++#ifdef CONFIG_CMD_EADISP
++void board_enable_lvds0(const struct display_info_t *di, int enable)
++{
++	static u32 base_addr = LCDIF2_BASE_ADDR;
++	if (enable) {
++		enable_lcdif_clock(base_addr);
++		enable_lvds(base_addr);
++
++		imx_iomux_v3_setup_multiple_pads(lvds_ctrl_pads,
++						ARRAY_SIZE(lvds_ctrl_pads));
++		mdelay(100); /* let panel sync up before enabling backlight */
++
++		/* Enable CABC */
++		gpio_direction_output(IMX_GPIO_NR(2, 1) , 1);
++
++		/* Set Brightness to high */
++		gpio_direction_output(IMX_GPIO_NR(7, 11) , 1);
++
++		/* Backlight power enable */
++		gpio_direction_output(IMX_GPIO_NR(1, 9) , 1);
++	}
++}
++
++void board_enable_rgb(const struct display_info_t *di, int enable)
++{
++	static u32 base_addr = LCDIF1_BASE_ADDR;
++	if (enable) {
++		enable_lcdif_clock(base_addr);
++		imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
++		mdelay(100); /* let panel sync up before enabling backlight */
++
++		/* Power up the LCD */
++		gpio_direction_output(IMX_GPIO_NR(2, 1) , 1);
++
++		/* Set Brightness to high */
++		gpio_direction_output(IMX_GPIO_NR(7, 10) , 1);
++
++		/* Backlight power enable */
++		gpio_direction_output(IMX_GPIO_NR(1, 9) , 1);
++	}
++}
++
++static const struct display_info_t displays[] = {
++	/* LVDS */
++	EADISP_HANNSTAR10(LVDS0, 0, 0),
++
++	/* RGB */
++	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_UMSH_8864(RGB, 0, 0),
++	EADISP_UMSH_8596_30T(RGB, 0, 0),
++	EADISP_UMSH_8596_33T(RGB, 0, 0),
++	EADISP_ROGIN_RX050A(RGB, 0, 0),
++};
++
++#else /* CONFIG_CMD_EADISP */
 +
 +struct lcd_panel_info_t {
 +	unsigned int lcdif_base_addr;
@@ -4107,7 +5950,8 @@ index 0000000..3539f85
 +
 +	return 0;
 +}
-+#endif
++#endif /* CONFIG_CMD_EADISP */
++#endif /* CONFIG_VIDEO_MXS */
 +
 +#ifdef CONFIG_FEC_MXC
 +int board_eth_init(bd_t *bis)
@@ -4204,6 +6048,23 @@ index 0000000..3539f85
 +
 +}
 +
++#endif
++
++#ifdef CONFIG_SYS_I2C_MXC
++static int disable_ar1021(void)
++{
++        unsigned char cmd[] = { 0x55, 0x01, 0x13 };
++
++        i2c_set_bus_num(0);
++        if (!i2c_probe(0x4d)) {
++
++                if (i2c_write(0x4d, 0x00, 1, cmd, 3)) {
++                        printf("Failed to disable AR1021!\n");
++                        return -1;
++                }
++	}
++	return 0;
++}
 +#endif
 +
 +#ifdef CONFIG_PFUZE100_PMIC_I2C
@@ -4430,13 +6291,13 @@ index 0000000..3539f85
 +
 +// Configuration parameters are stored in I2C mapped eeprom and
 +// must be initialized here since the configuration is accessed
-+// early in the boot sequence	
++// early in the boot sequence
 +#ifdef CONFIG_SYS_I2C_MXC
 +	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 +	setup_i2c(1, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info2);
 +#endif
 +
-+	ea_eeprom_init();	
++	ea_eeprom_init();
 +
 +	return 0;
 +}
@@ -4463,12 +6324,22 @@ index 0000000..3539f85
 +	/* Active high for ncp692 */
 +	gpio_direction_output(IMX_GPIO_NR(4, 26) , 1);
 +
++	/* Empty UART RX FIFO 5ms after PERI_PWR_ENABLE goes high */
++	udelay(5000);
++	while (tstc()) {
++		(void)getc();
++	}
++
 +#ifdef	CONFIG_FEC_MXC
 +	setup_fec(CONFIG_FEC_ENET_DEV);
 +#endif
 +
 +#ifdef CONFIG_FSL_QSPI
 +	board_qspi_init();
++#endif
++
++#ifdef CONFIG_CMD_EADISP
++	eadisp_setup_display(displays, ARRAY_SIZE(displays));
 +#endif
 +
 +	return 0;
@@ -4503,6 +6374,12 @@ index 0000000..3539f85
 +	board_late_mmc_init();
 +#endif
 +
++#ifdef CONFIG_CMD_EADISP
++	eatouch_init();
++#endif
++#ifdef CONFIG_SYS_I2C_MXC
++	disable_ar1021();
++#endif
 +	return 0;
 +}
 +
@@ -4515,14 +6392,14 @@ index 0000000..3539f85
 +{
 +	ea_eeprom_config_t config;
 +
-+	puts ("Board: Embedded Artists ");	
++	puts ("Board: Embedded Artists ");
 +	if (ea_eeprom_get_config(&config) == 0) {
 +
 +		printf("%s\n", config.name);
-+		printf("       %05d, %s, WO%d\n", 
-+			config.board_part_nr, 
-+			config.board_rev, 
-+			config.batch);	
++		printf("       %05d, %s, WO%d\n",
++			config.board_part_nr,
++			config.board_rev,
++			config.batch);
 +
 +	}
 +	else {
@@ -4861,10 +6738,10 @@ index 0000000..41d95fb
 +#endif
 diff --git a/board/embeddedartists/mx6ulea-com/mx6ulea-com.c b/board/embeddedartists/mx6ulea-com/mx6ulea-com.c
 new file mode 100644
-index 0000000..d64161c
+index 0000000..dc390e1
 --- /dev/null
 +++ b/board/embeddedartists/mx6ulea-com/mx6ulea-com.c
-@@ -0,0 +1,916 @@
+@@ -0,0 +1,988 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -4881,6 +6758,10 @@ index 0000000..d64161c
 +#include <asm/imx-common/iomux-v3.h>
 +#include <asm/imx-common/boot_mode.h>
 +#include <asm/imx-common/mxc_i2c.h>
++#if defined(CONFIG_CMD_EADISP)
++#include <asm/imx-common/eadisp.h>
++#include <asm/imx-common/eatouch.h>
++#endif
 +#include <asm/io.h>
 +#include <common.h>
 +#include <fsl_esdhc.h>
@@ -5298,6 +7179,39 @@ index 0000000..d64161c
 +	MX6_PAD_GPIO1_IO01__GPIO1_IO01 | MUX_PAD_CTRL(NO_PAD_CTRL),
 +};
 +
++#ifdef CONFIG_CMD_EADISP
++void board_enable_rgb(const struct display_info_t *di, int enable)
++{
++	if (enable) {
++		enable_lcdif_clock(LCDIF1_BASE_ADDR);
++
++		imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
++
++		mdelay(100); /* let panel sync up before enabling backlight */
++
++		/* Power up the LCD */
++		gpio_direction_output(IMX_GPIO_NR(1, 2) , 1);
++
++		/* Set Brightness to high */
++		gpio_direction_output(IMX_GPIO_NR(1, 8) , 1);
++
++		/* Backlight power enable */
++		gpio_direction_output(IMX_GPIO_NR(1, 1) , 1);
++	}
++}
++
++static const struct display_info_t displays[] = {
++	/* RGB */
++	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_UMSH_8864(RGB, 0, 0),
++	EADISP_UMSH_8596_30T(RGB, 0, 0),
++	EADISP_UMSH_8596_33T(RGB, 0, 0),
++	EADISP_ROGIN_RX050A(RGB, 0, 0),
++};
++
++#else /* CONFIG_CMD_EADISP */
++
 +struct lcd_panel_info_t {
 +	unsigned int lcdif_base_addr;
 +	int depth;
@@ -5375,6 +7289,7 @@ index 0000000..d64161c
 +
 +	return 0;
 +}
++#endif /* CONFIG_CMD_EADISP */
 +#endif
 +
 +#ifdef CONFIG_FEC_MXC
@@ -5586,6 +7501,23 @@ index 0000000..d64161c
 +
 +#endif
 +
++#ifdef CONFIG_SYS_I2C_MXC
++static int disable_ar1021(void)
++{
++        unsigned char cmd[] = { 0x55, 0x01, 0x13 };
++
++        i2c_set_bus_num(0);
++        if (!i2c_probe(0x4d)) {
++
++                if (i2c_write(0x4d, 0x00, 1, cmd, 3)) {
++                        printf("Failed to disable AR1021!\n");
++                        return -1;
++                }
++        }
++        return 0;
++}
++#endif
++
 +int board_early_init_f(void)
 +{
 +	/* configure and enable pwr on carrier board*/
@@ -5593,11 +7525,17 @@ index 0000000..d64161c
 +			ARRAY_SIZE(peri_pwr_pads));
 +	gpio_direction_output(IMX_GPIO_NR(5, 2), 1);
 +
++        /* Empty UART RX FIFO 5ms after PERI_PWR_ENABLE goes high */
++        udelay(5000);
++        while (tstc()) {
++                (void)getc();
++        }
++
 +	setup_iomux_uart();
 +
 +// Configuration parameters are stored in I2C mapped eeprom and
 +// must be initialized here since the configuration is accessed
-+// early in the boot sequence	
++// early in the boot sequence
 +#ifdef CONFIG_SYS_I2C_MXC
 +	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
 +#endif
@@ -5617,6 +7555,10 @@ index 0000000..d64161c
 +	setup_fec(CONFIG_FEC_ENET_DEV);
 +#endif
 +
++
++#ifdef CONFIG_CMD_EADISP
++	eadisp_setup_display(displays, ARRAY_SIZE(displays));
++#endif
 +
 +#ifdef CONFIG_USB_EHCI_MX6
 +	setup_usb();
@@ -5649,6 +7591,13 @@ index 0000000..d64161c
 +	board_late_mmc_init();
 +#endif
 +
++#ifdef CONFIG_CMD_EADISP
++        eatouch_init();
++#endif
++#ifdef CONFIG_SYS_I2C_MXC
++	disable_ar1021();
++#endif
++
 +	set_wdog_reset((struct wdog_regs *)WDOG1_BASE_ADDR);
 +
 +	return 0;
@@ -5663,14 +7612,14 @@ index 0000000..d64161c
 +{
 +	ea_eeprom_config_t config;
 +
-+	puts ("Board: Embedded Artists ");	
++	puts ("Board: Embedded Artists ");
 +	if (ea_eeprom_get_config(&config) == 0) {
 +
 +		printf("%s\n", config.name);
-+		printf("       %05d, %s, WO%d\n", 
-+			config.board_part_nr, 
-+			config.board_rev, 
-+			config.batch);	
++		printf("       %05d, %s, WO%d\n",
++			config.board_part_nr,
++			config.board_rev,
++			config.batch);
 +
 +	}
 +	else {
@@ -7537,20 +9486,20 @@ index 0000000..67a1b27
 +CONFIG_DM_THERMAL=y
 diff --git a/include/configs/mx6qea-com.h b/include/configs/mx6qea-com.h
 new file mode 100644
-index 0000000..19c4505
+index 0000000..8d7cd84
 --- /dev/null
 +++ b/include/configs/mx6qea-com.h
-@@ -0,0 +1,509 @@
+@@ -0,0 +1,510 @@
 +/*
 + * Copyright (C) 2012-2014 Freescale Semiconductor, Inc.
 + *
-+ * Configuration settings for the Freescale i.MX6Q SabreSD board.
++ * Configuration settings for the Embedded Artists i.MX6 Quad COM Board.
 + *
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
 +
-+#ifndef __MX6QSABRESD_CONFIG_H
-+#define __MX6QSABRESD_CONFIG_H
++#ifndef __MX6QEA_COM_H
++#define __MX6QEA_COM_H
 +
 +#include <asm/arch/imx-regs.h>
 +#include <asm/imx-common/gpio.h>
@@ -7742,7 +9691,7 @@ index 0000000..19c4505
 +		"fi\0" \
 +	"smp=" CONFIG_SYS_NOSMP "\0"\
 +	"mmcargs=setenv bootargs console=${console},${baudrate} ${smp} " \
-+		"root=${mmcroot}\0" \
++		"root=${mmcroot} ${args_from_script}\0" \
 +	"loadbootscript=" \
 +		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 +	"bootscript=echo Running bootscript from mmc ...; " \
@@ -7766,7 +9715,7 @@ index 0000000..19c4505
 +		"fi;\0" \
 +	"netargs=setenv bootargs console=${console},${baudrate} ${smp} " \
 +		"root=/dev/nfs " \
-+		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
++		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp ${args_from_script}\0" \
 +	"netboot=echo Booting from net ...; " \
 +		"run netargs; " \
 +		"if test ${ip_dyn} = yes; then " \
@@ -7832,7 +9781,7 @@ index 0000000..19c4505
 +#define PHYS_SDRAM                     MMDC0_ARB_BASE_ADDR
 +
 +#ifdef CONFIG_MX6DL
-+#define PHYS_SDRAM_SIZE                 SZ_1G
++#define PHYS_SDRAM_SIZE			SZ_1G
 +#else
 +#define PHYS_SDRAM_SIZE			SZ_2G
 +#endif
@@ -7952,6 +9901,7 @@ index 0000000..19c4505
 +
 +/* Framebuffer */
 +#define CONFIG_VIDEO
++#define CONFIG_CMD_EADISP
 +#define CONFIG_VIDEO_IPUV3
 +#define CONFIG_CFB_CONSOLE
 +#define CONFIG_VGA_AS_SINGLE_DEVICE
@@ -8049,23 +9999,23 @@ index 0000000..19c4505
 +#endif
 +#endif /* CONFIG_SPLASH_SCREEN && CONFIG_MXC_EPDC */
 +
-+#endif                         /* __MX6QSABRESD_CONFIG_H */
++#endif                         /* __MX6QEA_COM_H */
 diff --git a/include/configs/mx6sxea-com.h b/include/configs/mx6sxea-com.h
 new file mode 100644
-index 0000000..c5de013
+index 0000000..ac988dc
 --- /dev/null
 +++ b/include/configs/mx6sxea-com.h
-@@ -0,0 +1,435 @@
+@@ -0,0 +1,436 @@
 +/*
 + * Copyright (C) 2014 Freescale Semiconductor, Inc.
 + *
-+ * Configuration settings for the Freescale i.MX6SX SABRESD board.
++ * Configuration settings for the Embedded Artists i.MX6 SoloX COM Board.
 + *
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
 +
-+#ifndef __MX6SX_SABRESD_CONFIG_H
-+#define __MX6SX_SABRESD_CONFIG_H
++#ifndef __MX6SXEA_COM_H
++#define __MX6SXEA_COM_H
 +
 +#include <asm/arch/imx-regs.h>
 +#include <linux/sizes.h>
@@ -8211,6 +10161,7 @@ index 0000000..c5de013
 +/* VIDEO */
 +#define CONFIG_VIDEO
 +#define CONFIG_VIDEO_GIS
++#define CONFIG_CMD_EADISP
 +
 +/* Command definition */
 +#include <config_cmd_default.h>
@@ -8283,7 +10234,7 @@ index 0000000..c5de013
 +	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 +	"mmcautodetect=yes\0" \
 +	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-+		"root=${mmcroot}\0" \
++		"root=${mmcroot} ${args_from_script}\0" \
 +	"loadbootscript=" \
 +		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 +	"bootscript=echo Running bootscript from mmc ...; " \
@@ -8307,8 +10258,8 @@ index 0000000..c5de013
 +		"fi;\0" \
 +	"netargs=setenv bootargs console=${console},${baudrate} " \
 +		"root=/dev/nfs " \
-+	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
-+		"netboot=echo Booting from net ...; " \
++	    "ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp ${args_from_script}\0" \
++	"netboot=echo Booting from net ...; " \
 +		"run netargs; " \
 +		"if test ${ip_dyn} = yes; then " \
 +			"setenv get_cmd dhcp; " \
@@ -8490,17 +10441,17 @@ index 0000000..c5de013
 +#include "mx6sxsabresdandroid.h"
 +#endif
 +
-+#endif				/* __CONFIG_H */
++#endif				/* __MX6SXEA_COM_H */
 diff --git a/include/configs/mx6ulea-com.h b/include/configs/mx6ulea-com.h
 new file mode 100644
-index 0000000..b13ba91
+index 0000000..74547ed
 --- /dev/null
 +++ b/include/configs/mx6ulea-com.h
-@@ -0,0 +1,442 @@
+@@ -0,0 +1,443 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
-+ * Configuration settings for the Freescale i.MX6UL 14x14 EVK board.
++ * Configuration settings for the Embedded Artists i.MX6 UltraLite COM Board.
 + *
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
@@ -8663,6 +10614,7 @@ index 0000000..b13ba91
 +#define PHYS_SDRAM_SIZE			SZ_512M
 +
 +#define CONFIG_VIDEO
++#define CONFIG_CMD_EADISP
 +
 +/* Command definition */
 +#include <config_cmd_default.h>
@@ -8733,7 +10685,7 @@ index 0000000..b13ba91
 +	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 +	"mmcautodetect=yes\0" \
 +	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-+		"root=${mmcroot}\0" \
++		"root=${mmcroot} ${args_from_script}\0" \
 +	"loadbootscript=" \
 +		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 +	"bootscript=echo Running bootscript from mmc ...; " \
@@ -8757,7 +10709,7 @@ index 0000000..b13ba91
 +		"fi;\0" \
 +	"netargs=setenv bootargs console=${console},${baudrate} " \
 +		"root=/dev/nfs " \
-+	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
++	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp ${args_from_script}\0" \
 +		"netboot=echo Booting from net ...; " \
 +		"run netargs; " \
 +		"if test ${ip_dyn} = yes; then " \
@@ -8941,14 +10893,14 @@ index 0000000..b13ba91
 +#endif
 diff --git a/include/configs/mx7dea-ucom.h b/include/configs/mx7dea-ucom.h
 new file mode 100644
-index 0000000..1e159f2
+index 0000000..e911c91
 --- /dev/null
 +++ b/include/configs/mx7dea-ucom.h
 @@ -0,0 +1,465 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
-+ * Configuration settings for the Freescale i.MX7D SABRESD board.
++ * Configuration settings for the Embedded Artists i.MX7 Dual uCOM board.
 + *
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
@@ -9409,4 +11361,4 @@ index 0000000..1e159f2
 +#if defined(CONFIG_ANDROID_SUPPORT)
 +#include "mx7dsabresdandroid.h"
 +#endif
-+#endif	/* __CONFIG_H */
++#endif	/* __MX7D_UCOM_KIT_CONFIG_H */
