@@ -1166,10 +1166,10 @@ index 0000000..5fe0227
 +
 diff --git a/arch/arm/boot/dts/imx6qea-com-kit.dts b/arch/arm/boot/dts/imx6qea-com-kit.dts
 new file mode 100644
-index 0000000..81f88c1
+index 0000000..59485de
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6qea-com-kit.dts
-@@ -0,0 +1,852 @@
+@@ -0,0 +1,857 @@
 +/*
 + * Copyright 2012 Freescale Semiconductor, Inc.
 + * Copyright 2011 Linaro Ltd.
@@ -1487,6 +1487,7 @@ index 0000000..81f88c1
 +		interrupt-parent = <&gpio2>;
 +		interrupts = <18 IRQ_TYPE_EDGE_FALLING>;
 +		reset-gpios = <&gpio3 14 GPIO_ACTIVE_HIGH>;
++		status = "disabled";
 +	};
 +	/* Sitronix touch controller through LVDS0 contact on Carrier Board */
 +	sitronix_lvds0@55 {
@@ -1512,6 +1513,7 @@ index 0000000..81f88c1
 +		ar1021,swap_xy;
 +		ar1021,invert_x;
 +		#ar1021,invert_y;
++		status = "disabled";
 +	};
 +
 +	/* eGalax touch controller through LVDS1 contact on Carrier Board */
@@ -1523,6 +1525,7 @@ index 0000000..81f88c1
 +		interrupt-parent = <&gpio2>;
 +		interrupts = <31 IRQ_TYPE_EDGE_FALLING>;
 +		wakeup-gpios = <&gpio2 31 GPIO_ACTIVE_HIGH>;
++		status = "okay";
 +	};
 +
 +	/* Ilitek touch controller through LVDS1 contact on Carrier Board */
@@ -1533,6 +1536,7 @@ index 0000000..81f88c1
 +		pinctrl-0 = <&pinctrl_lvds1_contact>;
 +		interrupt-parent = <&gpio2>;
 +		interrupts = <31 IRQ_TYPE_EDGE_FALLING>;
++		status = "disabled";
 +	};
 +
 +	/* Sitronix touch controller through LVDS1 contact on Carrier Board */
@@ -1543,6 +1547,7 @@ index 0000000..81f88c1
 +		pinctrl-0 = <&pinctrl_lvds1_contact>;
 +		interrupt-parent = <&gpio2>;
 +		interrupts = <31 IRQ_TYPE_EDGE_FALLING>;
++		status = "disabled";
 +	};
 +};
 +
@@ -2488,10 +2493,10 @@ index 0000000..31312d6
 +
 diff --git a/arch/arm/boot/dts/imx6sxea-com-kit.dts b/arch/arm/boot/dts/imx6sxea-com-kit.dts
 new file mode 100644
-index 0000000..4c3e8e4
+index 0000000..ad12347
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx6sxea-com-kit.dts
-@@ -0,0 +1,691 @@
+@@ -0,0 +1,698 @@
 +/*
 + * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
 + *
@@ -2534,6 +2539,7 @@ index 0000000..4c3e8e4
 +		brightness-levels = <0 4 8 16 32 64 128 255>;
 +		default-brightness-level = <6>;
 +		fb-names = "mxs-lcdif0";
++		enable-gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
 +	};
 +
 +	backlight_lcd: backlight2 {
@@ -2544,7 +2550,7 @@ index 0000000..4c3e8e4
 +		fb-names = "mxs-lcdif1";
 +	};
 +
-+
++/*
 +	hannstar_cabc {
 +		compatible = "hannstar,cabc";
 +
@@ -2552,7 +2558,7 @@ index 0000000..4c3e8e4
 +			gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>, <&gpio1 9 GPIO_ACTIVE_HIGH>;
 +		};
 +	};
-+
++*/
 +	pxp_v4l2_out {
 +		compatible = "fsl,imx6sx-pxp-v4l2", "fsl,imx6sl-pxp-v4l2";
 +		status = "okay";
@@ -2623,7 +2629,7 @@ index 0000000..4c3e8e4
 +			reg = <5>;
 +			regulator-name = "MPCIE_3V3";
 +			regulator-min-microvolt = <3300000>;
-+			regulator-max-microvolt = <3300000>;
++			regulator-max-microvolt = <3300000>;			
 +			regulator-always-on;
 +		};
 +	};
@@ -2658,8 +2664,7 @@ index 0000000..4c3e8e4
 +
 +&lcdif1 {
 +	pinctrl-names = "default";
-+	pinctrl-0 = <&pinctrl_lcdif_dat
-+		     &pinctrl_lcdif_ctrl>;
++	pinctrl-0 = <&pinctrl_lcdif_dat>;
 +	lcd-supply = <&reg_lcd_3v3>;
 +	display = <&display0>;
 +	status = "okay";
@@ -2691,9 +2696,15 @@ index 0000000..4c3e8e4
 +};
 +
 +&lcdif2 {
++        lcd-supply = <&reg_lcd_3v3>;
++
 +	display = <&display1>;
 +	disp-dev = "ldb";
 +	status = "okay";
++
++	assigned-clocks = <&clks IMX6SX_CLK_LCDIF2_SEL>;
++	assigned-clock-parents = <&clks IMX6SX_CLK_LDB_DI0>;
++	assigned-clock-rates = <0>;
 +
 +	display1: display {
 +		bits-per-pixel = <16>;
@@ -2905,7 +2916,7 @@ index 0000000..4c3e8e4
 +		interrupt-parent = <&gpio2>;
 +		interrupts = <15 IRQ_TYPE_EDGE_FALLING>;
 +		wakeup-gpios = <&gpio2 15 GPIO_ACTIVE_HIGH>;
-+		status = "disabled";
++		status = "okay";
 +	};
 +
 +	/* Ilitek touch controller through RGB contact on Carrier Board */
@@ -2970,7 +2981,7 @@ index 0000000..4c3e8e4
 +};
 +
 +&iomuxc {
-+	pinctrl-0 = <&pinctrl_can_gpios>;
++	pinctrl-0 = <&pinctrl_can_gpios>, <&pinctrl_lcdif_ctrl>;
 +
 +	imx6xea-com-kit {
 +
@@ -3071,6 +3082,7 @@ index 0000000..4c3e8e4
 +				MX6SX_PAD_LCD1_HSYNC__LCDIF1_HSYNC 0x4001b0b0
 +				MX6SX_PAD_LCD1_RESET__GPIO3_IO_27 0x4001b0b0
 +				MX6SX_PAD_GPIO1_IO09__GPIO1_IO_9 0x4001b0b0
++				MX6SX_PAD_ENET1_CRS__GPIO2_IO_1 0x110b0
 +			>;
 +		};
 +
@@ -4380,10 +4392,10 @@ index 0000000..312f485
 +};
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit.dts b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
 new file mode 100644
-index 0000000..4822aa2
+index 0000000..4d5ac31
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
-@@ -0,0 +1,1017 @@
+@@ -0,0 +1,1041 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -4401,7 +4413,7 @@ index 0000000..4822aa2
 +	model = "Embedded Artists i.MX7 Dual uCOM Kit";
 +	compatible = "fsl,imx7dea-ucom", "fsl,imx7d";
 +
-+	memory {
++ 	memory {
 +		reg = <0x80000000 0x80000000>;
 +	};
 +
@@ -4901,6 +4913,17 @@ index 0000000..4822aa2
 +                clocks = <&clks IMX7D_AUDIO_MCLK_ROOT_CLK>;
 +        };
 +
++        ar1021@4d {
++                compatible = "microchip,ar1021-i2c";
++                reg = <0x4d>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_ar1021_int>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                ar1021,swap_xy;
++                ar1021,invert_x;
++                #ar1021,invert_y;
++        };
 +
 +};
 +
@@ -4940,6 +4963,12 @@ index 0000000..4822aa2
 +				MX7D_PAD_SD1_CD_B__GPIO5_IO0		0x59 /* CD */
 +				MX7D_PAD_SD1_RESET_B__GPIO5_IO2		0x59 /* vmmc */
 +			>;
++		};
++
++		pinctrl_ar1021_int: ar1021_intgrp {
++			fsl,pins = <
++				MX7D_PAD_SD2_CD_B__GPIO5_IO9          0x1f0b0
++ 			>;
 +		};
 +
 +		pinctrl_ov5647: ov5647grp-1 {
@@ -5237,6 +5266,13 @@ index 0000000..4822aa2
 +				MX7D_PAD_GPIO1_IO13__GPIO1_IO13	0x59
 +			>;
 +		};
++
++		/* Dummy node needed since imx7d.dtsi in the Android distribution 
++			has dependency towards pinctrl_gpio_keys. Final solution is to
++			fix NXPs imx7d.dtsi in the Android distribution. */
++                pinctrl_gpio_keys: gpio_keysgrp {
++                };
++
 +	};
 +};
 +
@@ -5277,7 +5313,7 @@ index 0000000..4822aa2
 +	status = "okay";
 +
 +	display0: display {
-+		bits-per-pixel = <16>;
++		bits-per-pixel = <24>;
 +		bus-width = <24>;
 +
 +                display-timings {

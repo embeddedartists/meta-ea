@@ -1705,10 +1705,10 @@ index 0000000..a7a7623
 +#endif /* __EATOUCH_H_ */
 diff --git a/board/embeddedartists/common/Makefile b/board/embeddedartists/common/Makefile
 new file mode 100644
-index 0000000..4a9d311
+index 0000000..f703052
 --- /dev/null
 +++ b/board/embeddedartists/common/Makefile
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,15 @@
 +#
 +# Copyright (C) 2007, Guennadi Liakhovetski <lg@denx.de>
 +#
@@ -1720,6 +1720,9 @@ index 0000000..4a9d311
 +
 +obj-y  += mx6ea_eeprom.o
 +obj-y  += mx6ea-com_spl.o
++ifdef CONFIG_FSL_FASTBOOT
++obj-${CONFIG_ANDROID_RECOVERY} += recovery.o
++endif
 +
 diff --git a/board/embeddedartists/common/bootscript.txt b/board/embeddedartists/common/bootscript.txt
 new file mode 100644
@@ -2417,6 +2420,90 @@ index 0000000..c0936aa
 +
 +#endif
 +
+diff --git a/board/embeddedartists/common/recovery.c b/board/embeddedartists/common/recovery.c
+new file mode 100644
+index 0000000..e6f2137
+--- /dev/null
++++ b/board/embeddedartists/common/recovery.c
+@@ -0,0 +1,78 @@
++/*
++ * Copyright (C) 2010-2014 Freescale Semiconductor, Inc. All Rights Reserved.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++#include <common.h>
++#include <malloc.h>
++#include <recovery.h>
++#ifdef CONFIG_MXC_KPD
++#include <mxc_keyb.h>
++#endif
++#include <asm/imx-common/boot_mode.h>
++
++#ifdef CONFIG_MXC_KPD
++#define PRESSED_VOL_DOWN	0x01
++#define PRESSED_POWER	    0x02
++#define RECOVERY_KEY_MASK (PRESSED_VOL_DOWN | PRESSED_POWER)
++
++inline int test_key(int value, struct kpp_key_info *ki)
++{
++	return (ki->val == value) && (ki->evt == KDepress);
++}
++
++int check_key_pressing(void)
++{
++	struct kpp_key_info *key_info = NULL;
++	int state = 0, keys, i;
++
++	int ret = 0;
++
++	mxc_kpp_init();
++	/* due to glitch suppression circuit,
++	   wait sometime to let all keys scanned. */
++	udelay(1000);
++	keys = mxc_kpp_getc(&key_info);
++
++	printf("Detecting VOL_DOWN+POWER key for recovery(%d:%d) ...\n",
++		keys, keys ? key_info->val : 0);
++	if (keys > 1) {
++		for (i = 0; i < keys; i++) {
++			if (test_key(CONFIG_POWER_KEY, &key_info[i]))
++				state |= PRESSED_POWER;
++			else if (test_key(CONFIG_VOL_DOWN_KEY, &key_info[i]))
++				state |= PRESSED_VOL_DOWN;
++		}
++	}
++	if ((state & RECOVERY_KEY_MASK) == RECOVERY_KEY_MASK)
++		ret = 1;
++	if (key_info)
++		free(key_info);
++	return ret;
++}
++#else
++/* If not using mxc keypad, currently we will detect power key on board */
++int check_key_pressing(void)
++{
++	return 0;
++}
++#endif
++
++void setup_recovery_env(void)
++{
++	board_recovery_setup();
++}
++
++/* export to lib_arm/board.c */
++void check_recovery_mode(void)
++{
++	if (check_key_pressing()) {
++		puts("Fastboot: Recovery key pressing got!\n");
++		setup_recovery_env();
++	} else if (check_recovery_cmd_file()) {
++		puts("Fastboot: Recovery command file found!\n");
++		setup_recovery_env();
++	} else {
++		puts("Fastboot: Normal\n");
++	}
++}
 diff --git a/board/embeddedartists/mx6qea-com/Kconfig b/board/embeddedartists/mx6qea-com/Kconfig
 new file mode 100644
 index 0000000..d22e2e0
@@ -2789,7 +2876,7 @@ index 0000000..103dd3f
 +#endif
 diff --git a/board/embeddedartists/mx6qea-com/mx6qea-com.c b/board/embeddedartists/mx6qea-com/mx6qea-com.c
 new file mode 100644
-index 0000000..8e0aaff
+index 0000000..678cdde
 --- /dev/null
 +++ b/board/embeddedartists/mx6qea-com/mx6qea-com.c
 @@ -0,0 +1,1777 @@
@@ -2838,7 +2925,7 @@ index 0000000..8e0aaff
 +#include <asm/imx-common/sata.h>
 +#endif
 +#ifdef CONFIG_FSL_FASTBOOT
-+#include <fastboot.h>
++#include <fsl_fastboot.h>
 +#ifdef CONFIG_ANDROID_RECOVERY
 +#include <recovery.h>
 +#endif
@@ -5266,7 +5353,7 @@ index 0000000..35e4cd3
 +#endif
 diff --git a/board/embeddedartists/mx6sxea-com/mx6sxea-com.c b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 new file mode 100644
-index 0000000..4822e2a
+index 0000000..48c2c00
 --- /dev/null
 +++ b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 @@ -0,0 +1,1295 @@
@@ -5314,7 +5401,7 @@ index 0000000..4822e2a
 +#endif
 +
 +#ifdef CONFIG_FSL_FASTBOOT
-+#include <fastboot.h>
++#include <fsl_fastboot.h>
 +#ifdef CONFIG_ANDROID_RECOVERY
 +#include <recovery.h>
 +#endif
@@ -9434,6 +9521,20 @@ index 0000000..35103c6
 +CONFIG_TARGET_MX6QEA_COM=y
 +CONFIG_DM=y
 +CONFIG_DM_THERMAL=y
+diff --git a/configs/mx6qea-com-android_defconfig b/configs/mx6qea-com-android_defconfig
+new file mode 100644
+index 0000000..af37dff
+--- /dev/null
++++ b/configs/mx6qea-com-android_defconfig
+@@ -0,0 +1,8 @@
++#CONFIG_SPL=y
++CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx6qea-com/imximage.cfg,MX6Q,ANDROID_SUPPORT"
++CONFIG_ARM=y
++CONFIG_TARGET_MX6QEA_COM=y
++CONFIG_SYS_MALLOC_F=y
++CONFIG_SYS_MALLOC_F_LEN=0x400
++CONFIG_DM=y
++CONFIG_DM_THERMAL=y
 diff --git a/configs/mx6qea-com_defconfig b/configs/mx6qea-com_defconfig
 new file mode 100644
 index 0000000..37c5238
@@ -9444,6 +9545,20 @@ index 0000000..37c5238
 +CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx6qea-com/imximage.cfg,MX6Q"
 +CONFIG_ARM=y
 +CONFIG_TARGET_MX6QEA_COM=y
++CONFIG_DM=y
++CONFIG_DM_THERMAL=y
+diff --git a/configs/mx6sxea-com-android_defconfig b/configs/mx6sxea-com-android_defconfig
+new file mode 100644
+index 0000000..a210354
+--- /dev/null
++++ b/configs/mx6sxea-com-android_defconfig
+@@ -0,0 +1,8 @@
++#CONFIG_SPL=y
++CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx6sxea-com/imximage.cfg,MX6SX,ANDROID_SUPPORT"
++CONFIG_ARM=y
++CONFIG_TARGET_MX6SXEA_COM=y
++CONFIG_SYS_MALLOC_F=y
++CONFIG_SYS_MALLOC_F_LEN=0x400
 +CONFIG_DM=y
 +CONFIG_DM_THERMAL=y
 diff --git a/configs/mx6sxea-com_defconfig b/configs/mx6sxea-com_defconfig
@@ -9468,6 +9583,20 @@ index 0000000..445fcf9
 +CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx6ulea-com/imximage.cfg,MX6UL"
 +CONFIG_ARM=y
 +CONFIG_TARGET_MX6ULEA_COM=y
++CONFIG_DM=y
++CONFIG_DM_THERMAL=y
+diff --git a/configs/mx7dea-ucom-android_defconfig b/configs/mx7dea-ucom-android_defconfig
+new file mode 100644
+index 0000000..081423d
+--- /dev/null
++++ b/configs/mx7dea-ucom-android_defconfig
+@@ -0,0 +1,8 @@
++#CONFIG_SPL=y
++CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx7dea-ucom/imximage.cfg,MX7D,ANDROID_SUPPORT"
++CONFIG_ARM=y
++CONFIG_TARGET_MX7DEA_UCOM=y
++CONFIG_SYS_MALLOC_F=y
++CONFIG_SYS_MALLOC_F_LEN=0x400
 +CONFIG_DM=y
 +CONFIG_DM_THERMAL=y
 diff --git a/configs/mx7dea-ucom_defconfig b/configs/mx7dea-ucom_defconfig
