@@ -1,8 +1,8 @@
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index cb770c3..9f6188f 100644
+index cb770c3..073bdd9 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -270,7 +270,16 @@ dtb-$(CONFIG_ARCH_MXC) += \
+@@ -270,7 +270,17 @@ dtb-$(CONFIG_ARCH_MXC) += \
  	imx7d-sdb-sim.dtb \
  	imx7d-sdb-touch.dtb \
  	imx7d-sdb-wm8960.dtb \
@@ -16,7 +16,8 @@ index cb770c3..9f6188f 100644
 +	imx6dlea-com-kit.dtb \
 +	imx6ulea-com-kit.dtb \
 +	imx6ulea-com-kit-rf.dtb \
-+	imx7dea-ucom-kit.dtb
++	imx7dea-ucom-kit.dtb \
++	imx7dea-ucom-kit-lvds.dtb
  dtb-$(CONFIG_ARCH_MXS) += imx23-evk.dtb \
  	imx23-olinuxino.dtb \
  	imx23-stmp378x_devb.dtb \
@@ -4390,12 +4391,54 @@ index 0000000..312f485
 +
 +	};
 +};
+diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts b/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts
+new file mode 100644
+index 0000000..6bd5eec
+--- /dev/null
++++ b/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts
+@@ -0,0 +1,36 @@
++/*
++ * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include "imx7dea-ucom-kit.dts"
++
++
++
++/*
++ * Disable the RGB interface to only have LVDS enabled
++ */
++
++
++&ar1021 {
++	status = "disabled";
++};
++
++&egalax {
++	status = "okay";
++};
++
++&timing0 {
++        hactive = <1024>;
++        vactive = <768>;
++};
++
++&backlight {
++	pwms = <&pwm3 0 5000000>;
++};
++
++
++
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit.dts b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
 new file mode 100644
-index 0000000..4d5ac31
+index 0000000..31e8c17
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
-@@ -0,0 +1,1041 @@
+@@ -0,0 +1,939 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -4417,7 +4460,7 @@ index 0000000..4d5ac31
 +		reg = <0x80000000 0x80000000>;
 +	};
 +
-+	backlight {
++	backlight: backlight {
 +		compatible = "pwm-backlight";
 +		pwms = <&pwm1 0 5000000>;
 +		brightness-levels = <0 4 8 16 32 64 128 255>;
@@ -4531,7 +4574,7 @@ index 0000000..4d5ac31
 +};
 +
 +&cpu0 {
-+	arm-supply = <&sw1a_reg>;
++	arm-supply = <&buck1_reg>;
 +};
 +
 +&csi1 {
@@ -4616,216 +4659,98 @@ index 0000000..4d5ac31
 +		};
 +
 +		regulators {
-+			#address-cells = <1>;
-+			#size-cells = <0>;
++			/* #address-cells = <1>;
++			#size-cells = <0>; */
 +
-+			buck1_reg: regulator@0 {
-+				reg = <0>;
-+				regulator-compatible = "buck1";
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <2000000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+				regulator-ramp-delay = <6250>;
-+			};
++                        buck1_reg: buck1 {
++                                regulator-min-microvolt = <800000>;
++                                regulator-max-microvolt = <2000000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                                regulator-ramp-delay = <6250>;
++                        };
 +
-+			buck2_reg: regulator@1 {
-+				reg = <1>;
-+				regulator-compatible = "buck2";
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <2000000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+				regulator-ramp-delay = <6250>;
-+			};
++                        buck2_reg: buck2 {
++                                regulator-min-microvolt = <800000>;
++                                regulator-max-microvolt = <2000000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                                regulator-ramp-delay = <6250>;
++                        };
 +
-+			buck3_reg: regulator@2 {
-+				reg = <2>;
-+				regulator-compatible = "buck3";
-+				regulator-min-microvolt = <1200000>;
-+				regulator-max-microvolt = <2700000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        buck3_reg: buck3 {
++                                regulator-min-microvolt = <1200000>;
++                                regulator-max-microvolt = <2700000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			buck4_reg: regulator@3 {
-+				reg = <3>;
-+				regulator-compatible = "buck4";
-+				regulator-min-microvolt = <1100000>;
-+				regulator-max-microvolt = <1850000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        buck4_reg: buck4 {
++                                regulator-min-microvolt = <1100000>;
++                                regulator-max-microvolt = <1850000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			buck5_reg: regulator@4 {
-+				reg = <4>;
-+				regulator-compatible = "buck5";
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        buck5_reg: buck5 {
++                                regulator-min-microvolt = <1800000>;
++                                regulator-max-microvolt = <3300000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			ldo1_reg: regulator@5 {
-+				reg = <5>;
-+				regulator-compatible = "ldo1";
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        ldo1_reg: ldo1 {
++                                regulator-min-microvolt = <800000>;
++                                regulator-max-microvolt = <3300000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			ldo2_reg: regulator@6 {
-+				reg = <6>;
-+				regulator-compatible = "ldo2";
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        ldo2_reg: ldo2 {
++                                regulator-min-microvolt = <800000>;
++                                regulator-max-microvolt = <3300000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			ldo3_reg: regulator@7 {
-+				reg = <7>;
-+				regulator-compatible = "ldo3";
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        ldo3_reg: ldo3 {
++                                regulator-min-microvolt = <800000>;
++                                regulator-max-microvolt = <3300000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			ldo4_reg: regulator@8 {
-+				reg = <8>;
-+				regulator-compatible = "ldo4";
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        ldo4_reg: ldo4 {
++                                regulator-min-microvolt = <800000>;
++                                regulator-max-microvolt = <3300000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			ldo5_reg: regulator@9 {
-+				reg = <9>;
-+				regulator-compatible = "ldo5";
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        ldo5_reg: ldo5 {
++                                regulator-min-microvolt = <800000>;
++                                regulator-max-microvolt = <3300000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			dvref_reg: regulator@10 {
-+				reg = <10>;
-+				regulator-compatible = "dvref";
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        dvref_reg: dvref {
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			lpsr_reg: regulator@11 {
-+				reg = <11>;
-+				regulator-compatible = "lpsr";
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
++                        lpsr_reg: lpsr {
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			wled_reg: regulator@12 {
-+				reg = <12>;
-+				regulator-compatible = "wled";
-+				regulator-min-microamp = <10>;
-+				regulator-max-microamp = <25000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
-+			sw1a_reg: sw1ab {
-+				regulator-min-microvolt = <300000>;
-+				regulator-max-microvolt = <1875000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+				regulator-ramp-delay = <6250>;
-+			};
++                        wled_reg: wled {
++                                regulator-min-microamp = <10>;
++                                regulator-max-microamp = <25000>;
++                                regulator-boot-on;
++                                regulator-always-on;
++                        };
 +
-+			sw1c_reg: sw1c {
-+				regulator-min-microvolt = <300000>;
-+				regulator-max-microvolt = <1875000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+				regulator-ramp-delay = <6250>;
-+			};
-+
-+			sw2_reg: sw2 {
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
-+
-+			sw3a_reg: sw3a {
-+				regulator-min-microvolt = <400000>;
-+				regulator-max-microvolt = <1975000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
-+
-+			sw3b_reg: sw3b {
-+				regulator-min-microvolt = <400000>;
-+				regulator-max-microvolt = <1975000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
-+
-+			sw4_reg: sw4 {
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <3300000>;
-+			};
-+
-+			swbst_reg: swbst {
-+				regulator-min-microvolt = <5000000>;
-+				regulator-max-microvolt = <5150000>;
-+			};
-+
-+			snvs_reg: vsnvs {
-+				regulator-min-microvolt = <1000000>;
-+				regulator-max-microvolt = <3000000>;
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
-+
-+			vref_reg: vrefddr {
-+				regulator-boot-on;
-+				regulator-always-on;
-+			};
-+
-+			vgen1_reg: vgen1 {
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <1550000>;
-+				regulator-always-on;
-+			};
-+
-+			vgen2_reg: vgen2 {
-+				regulator-min-microvolt = <800000>;
-+				regulator-max-microvolt = <1550000>;
-+			};
-+
-+			vgen3_reg: vgen3 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-always-on;
-+			};
-+
-+			vgen4_reg: vgen4 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-always-on;
-+			};
-+
-+			vgen5_reg: vgen5 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-always-on;
-+			};
-+
-+			vgen6_reg: vgen6 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-always-on;
-+			};
 +		};
 +		regulator-virtuals {
 +			compatible = "simple-bus";
@@ -4913,7 +4838,7 @@ index 0000000..4d5ac31
 +                clocks = <&clks IMX7D_AUDIO_MCLK_ROOT_CLK>;
 +        };
 +
-+        ar1021@4d {
++        ar1021: ar1021@4d {
 +                compatible = "microchip,ar1021-i2c";
 +                reg = <0x4d>;
 +                pinctrl-names = "default";
@@ -4923,6 +4848,17 @@ index 0000000..4d5ac31
 +                ar1021,swap_xy;
 +                ar1021,invert_x;
 +                #ar1021,invert_y;
++        };
++
++        egalax: egalax_ts_lvds0@04 {
++                compatible = "eeti,egalax_ts";
++                reg = <0x04>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_lvds0>;
++                interrupt-parent = <&gpio2>;
++                interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
++                wakeup-gpios = <&gpio2 26 GPIO_ACTIVE_HIGH>;
++                status = "disabled";
 +        };
 +
 +};
@@ -4970,6 +4906,13 @@ index 0000000..4d5ac31
 +				MX7D_PAD_SD2_CD_B__GPIO5_IO9          0x1f0b0
 + 			>;
 +		};
++
++                pinctrl_lvds0: lvds0_intgrp {
++                        fsl,pins = <
++                                MX7D_PAD_EPDC_GDRL__GPIO2_IO26          0x1f0b0
++                        >;
++                };
++
 +
 +		pinctrl_ov5647: ov5647grp-1 {
 +			fsl,pins = <
@@ -5267,12 +5210,6 @@ index 0000000..4d5ac31
 +			>;
 +		};
 +
-+		/* Dummy node needed since imx7d.dtsi in the Android distribution 
-+			has dependency towards pinctrl_gpio_keys. Final solution is to
-+			fix NXPs imx7d.dtsi in the Android distribution. */
-+                pinctrl_gpio_keys: gpio_keysgrp {
-+                };
-+
 +	};
 +};
 +
@@ -5437,12 +5374,16 @@ index 0000000..4d5ac31
 +	non-removable;
 +	status = "okay";
 +};
++
++
++
++
 diff --git a/arch/arm/configs/imx6_ea_android_defconfig b/arch/arm/configs/imx6_ea_android_defconfig
 new file mode 100644
-index 0000000..79546ac
+index 0000000..35c76bb
 --- /dev/null
 +++ b/arch/arm/configs/imx6_ea_android_defconfig
-@@ -0,0 +1,1110 @@
+@@ -0,0 +1,1120 @@
 +CONFIG_KERNEL_LZO=y
 +CONFIG_SYSVIPC=y
 +CONFIG_NO_HZ=y
@@ -6553,6 +6494,16 @@ index 0000000..79546ac
 +# EA: Enable RPMsg Ping-pong demo
 +#
 +CONFIG_IMX_RPMSG_PINGPONG=m
++
++#
++# EA: BD7181x PMIC
++#
++CONFIG_GPIO_BD7181X=y
++CONFIG_BD7181X_POWER=y
++CONFIG_MFD_BD7181X=y
++CONFIG_REGULATOR_BD7181X=y
++CONFIG_RTC_DRV_BD7181X=y
++
 diff --git a/arch/arm/mach-imx/mach-imx6q.c b/arch/arm/mach-imx/mach-imx6q.c
 index 039d9c2..95ddc7d 100644
 --- a/arch/arm/mach-imx/mach-imx6q.c
