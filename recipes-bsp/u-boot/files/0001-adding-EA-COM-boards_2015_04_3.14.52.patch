@@ -85,10 +85,10 @@ index 70f22b2..0fa6936 100644
  obj-$(CONFIG_SYSCOUNTER_TIMER) += syscounter.o
 diff --git a/arch/arm/imx-common/eadisp.c b/arch/arm/imx-common/eadisp.c
 new file mode 100644
-index 0000000..9d83a40
+index 0000000..d01d21b
 --- /dev/null
 +++ b/arch/arm/imx-common/eadisp.c
-@@ -0,0 +1,874 @@
+@@ -0,0 +1,928 @@
 +/*
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
@@ -377,6 +377,35 @@ index 0000000..9d83a40
 +		if (*p == ' ')
 +			p++;
 +	}
++
++	di->misc = 0;
++	for (i = 0; i < 4; i++)
++	{
++		u32 val;
++		val = simple_strtoul(p, &endp, 10);
++                if (endp <= p) {
++                        printf("expecting integer:%s\n", p);
++                        return NULL;
++                }
++                if (!(val==0 || val==1)) {
++                        printf("expecting 0 or 1:%s\n", p);
++                        return NULL;
++                }
++		if (val == 1) {
++			switch (i) {
++			case 0: di->misc |= MISC_HSYNC_ACTIVE_HIGH; break;
++			case 1: di->misc |= MISC_VSYNC_ACTIVE_HIGH; break;
++			case 2: di->misc |= MISC_DE_ACTIVE_HIGH; break;
++			case 3: di->misc |= MISC_PIXELCLK_ACTIVE_HIGH; break;
++			}
++		}
++		p = endp;
++		if (*p == ',')
++			p++;
++		if (*p == ' ')
++			p++;
++	}
++
 +	if (*p) {
 +		printf("extra parameters found:%s\n", p);
 +		return NULL;
@@ -514,6 +543,20 @@ index 0000000..9d83a40
 +		buf += sz;
 +		size -= sz;
 +	}
++
++	sz = snprintf(buf, size, "fdt set %s hsync-active <%u>;", timings_names[fb], (di->misc & MISC_HSYNC_ACTIVE_HIGH)?1:0);
++	buf += sz;
++	size -= sz;
++	sz = snprintf(buf, size, "fdt set %s vsync-active <%u>;", timings_names[fb], (di->misc & MISC_VSYNC_ACTIVE_HIGH)?1:0);
++	buf += sz;
++	size -= sz;
++	sz = snprintf(buf, size, "fdt set %s de-active <%u>;", timings_names[fb], (di->misc & MISC_DE_ACTIVE_HIGH)?1:0);
++	buf += sz;
++	size -= sz;
++	sz = snprintf(buf, size, "fdt set %s pixelclk-active <%u>;", timings_names[fb], (di->misc & MISC_PIXELCLK_ACTIVE_HIGH)?1:0);
++	buf += sz;
++	size -= sz;
++
 +	setenv(cmd_fbnames[fb], buf_start);
 +}
 +
@@ -637,6 +680,17 @@ index 0000000..9d83a40
 +			size -= count;
 +		}
 +	}
++
++	count = snprintf(p, size, ",%d,%d,%d,%d",
++		((di->misc & MISC_HSYNC_ACTIVE_HIGH) ? 1 : 0),
++		((di->misc & MISC_VSYNC_ACTIVE_HIGH) ? 1 : 0),
++		((di->misc & MISC_DE_ACTIVE_HIGH) ? 1 : 0),
++		((di->misc & MISC_PIXELCLK_ACTIVE_HIGH) ? 1 : 0));
++	if (size > count) {
++		p += count;
++		size -= count;
++	}
++
 +	*p = 0;
 +}
 +
@@ -706,7 +760,7 @@ index 0000000..9d83a40
 +	char buf[50];
 +	const char* msg;
 +	int preferred = -1;
-+	
++
 +	msg = getenv("eadisp_prefer");
 +	if (msg) {
 +		for (i = 0; i < NUM_FBS; i++) {
@@ -943,7 +997,7 @@ index 0000000..9d83a40
 +		   "eadisp enable "DISPTYPES" - Enable selected display\n"
 +		   "eadisp disable "DISPTYPES" - Disable selected display\n"
 +		   "eadisp conf "DISPTYPES" num - Select configuration for display\n"
-+		   "eadisp add "DISPTYPES" [\"mode_str[:[m][j][s][18|24]:pixclkfreq,xres,yres,hback-porch,hfront-porch,vback-porch,vfront-porch,hsync,vsync]\"]\n"
++		   "eadisp add "DISPTYPES" [\"mode_str[:[m][j][s][18|24]:pixclkfreq,xres,yres,hback-porch,hfront-porch,vback-porch,vfront-porch,hsync,vsync,hsact,vsact,deact,clkact]\"]\n"
 +		   "eadisp rm num - Remove added configuration\n");
 +
 +int board_video_skip(void)
@@ -965,10 +1019,10 @@ index 0000000..9d83a40
 +}
 diff --git a/arch/arm/imx-common/eatouch.c b/arch/arm/imx-common/eatouch.c
 new file mode 100644
-index 0000000..9d4dadc
+index 0000000..bb727f2
 --- /dev/null
 +++ b/arch/arm/imx-common/eatouch.c
-@@ -0,0 +1,298 @@
+@@ -0,0 +1,299 @@
 +/*
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
@@ -988,63 +1042,64 @@ index 0000000..9d4dadc
 + * load the selected touch controller information.
 + *
 + * The eatouch command supports enabling/disabling each available touch
-+ * controller for each of the contacts on the board.
++ * controller for each of the display interface connectors on the board.
 + *
 + * The eatouch command does this by setting environment variables (XX stand for
 + * rgb,lvds0,lvds1):
-+ * - cmd_ts_rgb          used by cmd_ts to modify device tree for the rgb contact
-+ * - cmd_ts_lvds0        used by cmd_ts to modify device tree for the lvds0 contact
-+ * - cmd_ts_lvds1        used by cmd_ts to modify device tree for the lvds1 contact
++ * - cmd_ts_rgb          used by cmd_ts to modify device tree for the rgb connector
++ * - cmd_ts_lvds0        used by cmd_ts to modify device tree for the lvds0 connector
++ * - cmd_ts_lvds1        used by cmd_ts to modify device tree for the lvds1 connector
 + * - cmd_ts              main command, will be executed by bootscript prior to boot
 + */
 +
-+#define CONTACT_RGB    0
-+#define CONTACT_LVDS0  1
-+#define CONTACT_LVDS1  2
++#define CONNECTOR_RGB    0
++#define CONNECTOR_LVDS0  1
++#define CONNECTOR_LVDS1  2
 +
 +#if defined(CONFIG_MX6SX)
-+  #define CONTACTS        "(rgb|lvds0)"
-+  #define NUM_CONTACTS    2  /* Only have 1x RGB and 1x LVDS on SoloX */
++  #define CONNECTORS        "(rgb|lvds0)"
++  #define NUM_CONNECTORS    2  /* Only have 1x RGB and 1x LVDS on SoloX */
 +#elif defined(CONFIG_MX6Q)
-+  #define CONTACTS        "(rgb|lvds0|lvds1)"
-+  #define NUM_CONTACTS    3
++  #define CONNECTORS        "(rgb|lvds0|lvds1)"
++  #define NUM_CONNECTORS    3
 +#elif defined(CONFIG_MX6DL)
-+  #define CONTACTS        "(rgb|lvds0|lvds1)"
-+  #define NUM_CONTACTS    3
++  #define CONNECTORS        "(rgb|lvds0|lvds1)"
++  #define NUM_CONNECTORS    3
 +#elif defined(CONFIG_MX6UL)
-+  #define CONTACTS        "rgb"
-+  #define NUM_CONTACTS    1  /* Only have 1x RGB on UltraLite */
++  #define CONNECTORS        "rgb"
++  #define NUM_CONNECTORS    1  /* Only have 1x RGB on UltraLite */
 +#elif defined(CONFIG_MX7D)
-+  #define CONTACTS        "rgb"
-+  #define NUM_CONTACTS    1  /* Only have 1x RGB on 7 Dual */
++  #define CONNECTORS        "rgb"
++  #define NUM_CONNECTORS    1  /* Only have 1x RGB on 7 Dual */
 +#else
 +  #error Unsupported hardware
 +#endif
 +
 +static const char *const cmd_names[] = {
-+[CONTACT_RGB] = "cmd_ts_rgb",
-+[CONTACT_LVDS0] = "cmd_ts_lvds0",
-+[CONTACT_LVDS1] = "cmd_ts_lvds1",
++[CONNECTOR_RGB] = "cmd_ts_rgb",
++[CONNECTOR_LVDS0] = "cmd_ts_lvds0",
++[CONNECTOR_LVDS1] = "cmd_ts_lvds1",
 +};
 +
-+static const char *const contact_names[] = {
-+[CONTACT_RGB] = "rgb",
-+[CONTACT_LVDS0] = "lvds0",
-+[CONTACT_LVDS1] = "lvds1",
++static const char *const connector_names[] = {
++[CONNECTOR_RGB] = "rgb",
++[CONNECTOR_LVDS0] = "lvds0",
++[CONNECTOR_LVDS1] = "lvds1",
 +};
 +
 +static const char *const short_names[] = {
 +[TOUCH_AR1021] = "ar1021",
 +[TOUCH_EGALAX] = "egalax",
++[TOUCH_FT5X06] = "ft5x06",
 +[TOUCH_ILITEK] = "ilitek",
 +[TOUCH_SITRONIX] = "sitronix",
 +};
 +
-+static struct touch_info_t controllers[NUM_CONTACTS][TOUCH_COUNT] = {
++static struct touch_info_t controllers[NUM_CONNECTORS][TOUCH_COUNT] = {
 +	{ EATOUCH_ALL_CONTROLLERS(rgb)   },
-+#if NUM_CONTACTS > 1
++#if NUM_CONNECTORS > 1
 +	{ EATOUCH_ALL_CONTROLLERS(lvds0) },
-+#if NUM_CONTACTS > 2
++#if NUM_CONNECTORS > 2
 +	{ EATOUCH_ALL_CONTROLLERS(lvds1) },
 +#endif
 +#endif
@@ -1061,14 +1116,14 @@ index 0000000..9d4dadc
 +
 +	printf("\nCurrent Setup:\n");
 +	printf("\t%10s\t", "");
-+	for (i = 0; i < NUM_CONTACTS; i++) {
-+		printf("%s contact\t", contact_names[i]);
++	for (i = 0; i < NUM_CONNECTORS; i++) {
++		printf("  %s conn.\t", connector_names[i]);
 +	}
 +	printf("\n");
-+	
++
 +	for (i = 0; i < TOUCH_COUNT; i++) {
 +		printf("\t%10s", short_names[i]);
-+		for (j = 0; j < NUM_CONTACTS; j++) {
++		for (j = 0; j < NUM_CONNECTORS; j++) {
 +			if (controllers[j][i].enabled) {
 +				printf("\tEnabled 0x%02x", controllers[j][i].addr);
 +			} else {
@@ -1098,7 +1153,7 @@ index 0000000..9d4dadc
 +	const char* env = getenv(TOUCH_ENV_SEL);
 +	if (env) {
 +		valid = 1;
-+		for (i = 0; i < NUM_CONTACTS; i++) {
++		for (i = 0; i < NUM_CONNECTORS; i++) {
 +			for (j = 0; j < TOUCH_COUNT; j++) {
 +				if (*env == 'E') {
 +					controllers[i][j].enabled = 1;
@@ -1118,9 +1173,9 @@ index 0000000..9d4dadc
 +			}
 +		}
 +	}
-+	
++
 +	if (!valid) {
-+		for (i = 0; i < NUM_CONTACTS; i++) {
++		for (i = 0; i < NUM_CONNECTORS; i++) {
 +			for (j = 0; j < TOUCH_COUNT; j++) {
 +				controllers[i][j].enabled = 0;
 +			}
@@ -1130,11 +1185,11 @@ index 0000000..9d4dadc
 +
 +static void save_selection(void)
 +{
-+	char buf[NUM_CONTACTS * TOUCH_COUNT + 1];
++	char buf[NUM_CONNECTORS * TOUCH_COUNT + 1];
 +	int i, j;
 +	char* p = &buf[0];
 +
-+	for (i = 0; i < NUM_CONTACTS; i++) {
++	for (i = 0; i < NUM_CONNECTORS; i++) {
 +		for (j = 0; j < TOUCH_COUNT; j++) {
 +			if (controllers[i][j].enabled) {
 +				*p++ = 'E';
@@ -1158,7 +1213,7 @@ index 0000000..9d4dadc
 +		printf("Failed to allocate memory for eatouch command\n");
 +	}
 +
-+	for (i = 0; i < NUM_CONTACTS; i++) {
++	for (i = 0; i < NUM_CONNECTORS; i++) {
 +		p = buf;
 +		size = 4096;
 +		for (j = 0; j < TOUCH_COUNT; j++) {
@@ -1174,7 +1229,7 @@ index 0000000..9d4dadc
 +	}
 +	p = buf;
 +	size = 4096;
-+	for (i = 0; i < NUM_CONTACTS; i++) {
++	for (i = 0; i < NUM_CONNECTORS; i++) {
 +		count = snprintf(p, size, "run %s; ", cmd_names[i]);
 +		p += count;
 +		size -= count;
@@ -1202,8 +1257,8 @@ index 0000000..9d4dadc
 +	if (!strcmp("enable", cmd) || !strcmp("disable", cmd)) {
 +		int enable = !strcmp("enable", cmd);
 +		if (argc == 4) {
-+			for (i = 0; i < NUM_CONTACTS; i++) {
-+				if (!strcmp(argv[2], contact_names[i])) {
++			for (i = 0; i < NUM_CONNECTORS; i++) {
++				if (!strcmp(argv[2], connector_names[i])) {
 +					int idx = simple_strtoul(argv[3], NULL, 10);
 +					//printf("'%s', '%s', '%s', '%s' (%d)\n", argv[0], argv[1], argv[2], argv[3], idx);
 +					if (idx >= 1 && idx <= TOUCH_COUNT) {
@@ -1217,7 +1272,7 @@ index 0000000..9d4dadc
 +					return CMD_RET_SUCCESS;
 +				}
 +			}
-+			printf("Invalid contact name '%s'\n", argv[2]);
++			printf("Invalid display interface connector name '%s'\n", argv[2]);
 +		}
 +		return CMD_RET_USAGE;
 +	}
@@ -1231,10 +1286,10 @@ index 0000000..9d4dadc
 +				ctrl--;
 +				int addr = simple_strtoul(argv[3], NULL, 10);
 +				if (addr >= 0x01 && addr <= 0xff) {
-+					int contact;
++					int conn;
 +					printf("Changing I2C address of %s to 0x%x\n", short_names[ctrl], addr);
-+					for (contact = 0; contact < NUM_CONTACTS; contact++) {
-+						controllers[contact][ctrl].addr = addr;
++					for (conn = 0; conn < NUM_CONNECTORS; conn++) {
++						controllers[conn][ctrl].addr = addr;
 +					}
 +					save_selection();
 +					update_commands();
@@ -1256,10 +1311,10 @@ index 0000000..9d4dadc
 +
 +
 +U_BOOT_CMD(eatouch, 4, 0, do_eatouch,
-+		   "Configure Touch Controller Support for each contact",
++		   "Configure Touch Controller Support for each display interface connector",
 +		   " - Show current configuration\n"
-+		   "eatouch disable "CONTACTS" num - Disable touch controller from list for contact\n"
-+		   "eatouch enable "CONTACTS" num - Enable touch controller from list for contact\n");
++		   "eatouch disable "CONNECTORS" num - Disable touch controller from list for connector\n"
++		   "eatouch enable "CONNECTORS" num - Enable touch controller from list for connector\n");
 +
 +
 +void eatouch_init(void)
@@ -1325,10 +1380,10 @@ index ac6e40e..83e34e9 100644
  #if defined(CONFIG_SPL_MMC_SUPPORT)
 diff --git a/arch/arm/include/asm/imx-common/eadisp.h b/arch/arm/include/asm/imx-common/eadisp.h
 new file mode 100644
-index 0000000..0d0413a
+index 0000000..2e284a1
 --- /dev/null
 +++ b/arch/arm/include/asm/imx-common/eadisp.h
-@@ -0,0 +1,329 @@
+@@ -0,0 +1,398 @@
 +/*
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
@@ -1357,6 +1412,13 @@ index 0000000..0d0413a
 +#define FBF_JEIDA		2
 +#define FBF_SPLITMODE	4
 +	int	fbflags;
++
++#define MISC_HSYNC_ACTIVE_HIGH     1
++#define MISC_VSYNC_ACTIVE_HIGH     2
++#define MISC_DE_ACTIVE_HIGH        4
++#define MISC_PIXELCLK_ACTIVE_HIGH  8
++	int 	misc;
++
 +	struct	fb_videomode mode;
 +};
 +
@@ -1369,6 +1431,7 @@ index 0000000..0d0413a
 +int eadisp_detect_i2c(struct display_info_t const *di);
 +void eadisp_setup_display(const struct display_info_t *displays, int cnt);
 +
++/* LVDS settings */
 +#define EADISP_HANNSTAR10(_mode, _detect, _bus) \
 +{\
 +	.bus	= _bus,\
@@ -1394,6 +1457,7 @@ index 0000000..0d0413a
 +	}\
 +}
 +
++/* RGB settings */
 +#define EADISP_INNOLUX_AT070TN(_mode, _detect, _bus) \
 +{\
 +	.bus	= _bus,\
@@ -1403,6 +1467,7 @@ index 0000000..0d0413a
 +	.enable	= eadisp_enable_fb,\
 +	.fbtype = FB_##_mode,\
 +	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH,\
 +	.mode	= {\
 +		.name           = "Innolux-AT070TN",\
 +		.refresh        = 49,\
@@ -1420,6 +1485,33 @@ index 0000000..0d0413a
 +	}\
 +}
 +
++#define EADISP_NHD_43480272EF(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH,\
++	.mode	= {\
++		.name           = "nhd-4.3-480272ef",\
++		.refresh        = 60,\
++		.xres           = 480,\
++		.yres           = 272,\
++		.pixclock       = 1000000000000ULL/((480+2+2+41)*(272+2+2+10)*60),\
++		.left_margin    = 2,\
++		.right_margin   = 2,\
++		.upper_margin   = 2,\
++		.lower_margin   = 2,\
++		.hsync_len      = 41,\
++		.vsync_len      = 10,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
 +#define EADISP_NHD_50800480TF(_mode, _detect, _bus) \
 +{\
 +	.bus	= _bus,\
@@ -1429,18 +1521,46 @@ index 0000000..0d0413a
 +	.enable	= eadisp_enable_fb,\
 +	.fbtype = FB_##_mode,\
 +	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH,\
 +	.mode	= {\
 +		.name           = "nhd-5.0-800480tf",\
-+		.refresh        = 60,\
++		.refresh        = 62,\
 +		.xres           = 800,\
 +		.yres           = 480,\
-+		.pixclock       = 1000000000000ULL/((800+88+40+10)*(480+32+13+10)*60),\
-+		.left_margin    = 88,\
++		.pixclock       = 1000000000000ULL/((800+40+40+48)*(480+29+13+3)*60),\
++		.left_margin    = 40,\
 +		.right_margin   = 40,\
-+		.upper_margin   = 32,\
++		.upper_margin   = 29,\
 +		.lower_margin   = 13,\
-+		.hsync_len      = 10,\
-+		.vsync_len      = 10,\
++		.hsync_len      = 48,\
++		.vsync_len      = 3,\
++		.sync           = 0,\
++		.vmode          = FB_VMODE_NONINTERLACED\
++	}\
++}
++
++#define EADISP_NHD_70800480EF(_mode, _detect, _bus) \
++{\
++	.bus	= _bus,\
++	.addr	= 0,\
++	.pixfmt	= IPU_PIX_FMT_RGB24,\
++	.detect	= _detect ? eadisp_detect_i2c : NULL,\
++	.enable	= eadisp_enable_fb,\
++	.fbtype = FB_##_mode,\
++	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH,\
++	.mode	= {\
++		.name           = "nhd-7.0-800480ef",\
++		.refresh        = 62,\
++		.xres           = 800,\
++		.yres           = 480,\
++		.pixclock       = 1000000000000ULL/((800+40+40+48)*(480+29+13+3)*60),\
++		.left_margin    = 40,\
++		.right_margin   = 40,\
++		.upper_margin   = 29,\
++		.lower_margin   = 13,\
++		.hsync_len      = 48,\
++		.vsync_len      = 3,\
 +		.sync           = 0,\
 +		.vmode          = FB_VMODE_NONINTERLACED\
 +	}\
@@ -1455,6 +1575,7 @@ index 0000000..0d0413a
 +	.enable	= eadisp_enable_fb,\
 +	.fbtype = FB_##_mode,\
 +	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH,\
 +	.mode	= {\
 +		.name           = "umsh-8864",\
 +		.refresh        = 55,\
@@ -1481,6 +1602,7 @@ index 0000000..0d0413a
 +	.enable	= eadisp_enable_fb,\
 +	.fbtype = FB_##_mode,\
 +	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH + MISC_PIXELCLK_ACTIVE_HIGH,\
 +	.mode	= {\
 +		.name           = "umsh-8596-30t",\
 +		.refresh        = 60,\
@@ -1507,6 +1629,7 @@ index 0000000..0d0413a
 +	.enable	= eadisp_enable_fb,\
 +	.fbtype = FB_##_mode,\
 +	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH + MISC_PIXELCLK_ACTIVE_HIGH,\
 +	.mode	= {\
 +		.name           = "umsh-8596-33t",\
 +		.refresh        = 48,\
@@ -1533,6 +1656,7 @@ index 0000000..0d0413a
 +	.enable	= eadisp_enable_fb,\
 +	.fbtype = FB_##_mode,\
 +	.fbflags = 0,\
++	.misc   = MISC_DE_ACTIVE_HIGH,\
 +	.mode	= {\
 +		.name           = "rogin-rx050a",\
 +		.refresh        = 48,\
@@ -1660,10 +1784,10 @@ index 0000000..0d0413a
 +#endif /* __EADISP_H_ */
 diff --git a/arch/arm/include/asm/imx-common/eatouch.h b/arch/arm/include/asm/imx-common/eatouch.h
 new file mode 100644
-index 0000000..a7a7623
+index 0000000..63d8c67
 --- /dev/null
 +++ b/arch/arm/include/asm/imx-common/eatouch.h
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,41 @@
 +/*
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
@@ -1680,7 +1804,8 @@ index 0000000..a7a7623
 +#define TOUCH_ILITEK    1
 +#define TOUCH_SITRONIX  2
 +#define TOUCH_EGALAX    3
-+#define TOUCH_COUNT     4
++#define TOUCH_FT5X06    4
++#define TOUCH_COUNT     5
 +	int	    type;
 +
 +	const char* alias;
@@ -1688,19 +1813,20 @@ index 0000000..a7a7623
 +
 +void eatouch_init(void);
 +
-+#define EATOUCH_CONTROLLER(_contact, _addr, _type, _tname) \
++#define EATOUCH_CONTROLLER(_conn, _addr, _type, _tname) \
 +{ \
 +	.enabled = 0, \
 +	.addr	 = _addr, \
 +	.type	 = _type,\
-+	.alias	 = "ts_con_" #_contact "/" #_tname "_" #_contact \
++	.alias	 = "ts_con_" #_conn "/" #_tname "_" #_conn \
 +}
 +
-+#define EATOUCH_ALL_CONTROLLERS(_contact) \
-+	EATOUCH_CONTROLLER(_contact, 0x4d, TOUCH_AR1021,   ar1021),\
-+	EATOUCH_CONTROLLER(_contact, 0x41, TOUCH_ILITEK,   ilitek_aim),\
-+	EATOUCH_CONTROLLER(_contact, 0x55, TOUCH_SITRONIX, sitronix),\
-+	EATOUCH_CONTROLLER(_contact, 0x04, TOUCH_EGALAX,   egalax_ts)
++#define EATOUCH_ALL_CONTROLLERS(_conn) \
++	EATOUCH_CONTROLLER(_conn, 0x4d, TOUCH_AR1021,   ar1021),\
++	EATOUCH_CONTROLLER(_conn, 0x41, TOUCH_ILITEK,   ilitek_aim),\
++	EATOUCH_CONTROLLER(_conn, 0x55, TOUCH_SITRONIX, sitronix),\
++	EATOUCH_CONTROLLER(_conn, 0x04, TOUCH_EGALAX,   egalax_ts),\
++	EATOUCH_CONTROLLER(_conn, 0x38, TOUCH_FT5X06,   edt-ft5x06)
 +
 +#endif /* __EATOUCH_H_ */
 diff --git a/board/embeddedartists/common/Makefile b/board/embeddedartists/common/Makefile
@@ -2876,10 +3002,10 @@ index 0000000..103dd3f
 +#endif
 diff --git a/board/embeddedartists/mx6qea-com/mx6qea-com.c b/board/embeddedartists/mx6qea-com/mx6qea-com.c
 new file mode 100644
-index 0000000..678cdde
+index 0000000..64e4ada
 --- /dev/null
 +++ b/board/embeddedartists/mx6qea-com/mx6qea-com.c
-@@ -0,0 +1,1777 @@
+@@ -0,0 +1,1779 @@
 +/*
 + * Copyright (C) 2012-2014 Freescale Semiconductor, Inc.
 + *
@@ -4040,7 +4166,9 @@ index 0000000..678cdde
 +
 +	/* RGB */
 +	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_43480272EF(RGB, 0, 0),
 +	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_NHD_70800480EF(RGB, 0, 0),
 +	EADISP_UMSH_8864(RGB, 0, 0),
 +	EADISP_UMSH_8596_30T(RGB, 0, 0),
 +	EADISP_UMSH_8596_33T(RGB, 0, 0),
@@ -5353,10 +5481,10 @@ index 0000000..35e4cd3
 +#endif
 diff --git a/board/embeddedartists/mx6sxea-com/mx6sxea-com.c b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 new file mode 100644
-index 0000000..48c2c00
+index 0000000..63f88e5
 --- /dev/null
 +++ b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
-@@ -0,0 +1,1295 @@
+@@ -0,0 +1,1297 @@
 +/*
 + * Copyright (C) 2014 Freescale Semiconductor, Inc.
 + *
@@ -5916,7 +6044,9 @@ index 0000000..48c2c00
 +
 +	/* RGB */
 +	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_43480272EF(RGB, 0, 0),
 +	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_NHD_70800480EF(RGB, 0, 0),
 +	EADISP_UMSH_8864(RGB, 0, 0),
 +	EADISP_UMSH_8596_30T(RGB, 0, 0),
 +	EADISP_UMSH_8596_33T(RGB, 0, 0),
@@ -6825,10 +6955,10 @@ index 0000000..41d95fb
 +#endif
 diff --git a/board/embeddedartists/mx6ulea-com/mx6ulea-com.c b/board/embeddedartists/mx6ulea-com/mx6ulea-com.c
 new file mode 100644
-index 0000000..dc390e1
+index 0000000..87f599a
 --- /dev/null
 +++ b/board/embeddedartists/mx6ulea-com/mx6ulea-com.c
-@@ -0,0 +1,988 @@
+@@ -0,0 +1,990 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -7290,7 +7420,9 @@ index 0000000..dc390e1
 +static const struct display_info_t displays[] = {
 +	/* RGB */
 +	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_43480272EF(RGB, 0, 0),
 +	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_NHD_70800480EF(RGB, 0, 0),
 +	EADISP_UMSH_8864(RGB, 0, 0),
 +	EADISP_UMSH_8596_30T(RGB, 0, 0),
 +	EADISP_UMSH_8596_33T(RGB, 0, 0),
