@@ -5484,10 +5484,10 @@ index 0000000..31e8c17
 +
 diff --git a/arch/arm/configs/imx6_ea_android_defconfig b/arch/arm/configs/imx6_ea_android_defconfig
 new file mode 100644
-index 0000000..35c76bb
+index 0000000..2edcb74
 --- /dev/null
 +++ b/arch/arm/configs/imx6_ea_android_defconfig
-@@ -0,0 +1,1120 @@
+@@ -0,0 +1,1124 @@
 +CONFIG_KERNEL_LZO=y
 +CONFIG_SYSVIPC=y
 +CONFIG_NO_HZ=y
@@ -5676,9 +5676,9 @@ index 0000000..35c76bb
 +CONFIG_BT_HCIUART_BCSP=y
 +CONFIG_BT_HCIUART_ATH3K=y
 +CONFIG_BT_HCIBCM203X=y
-+CONFIG_CFG80211=m
++CONFIG_CFG80211=y
 +CONFIG_CFG80211_WEXT=y
-+CONFIG_MAC80211=m
++CONFIG_MAC80211=y
 +CONFIG_RFKILL=y
 +CONFIG_RFKILL_INPUT=y
 +CONFIG_RFKILL_GPIO=y
@@ -6361,6 +6361,11 @@ index 0000000..35c76bb
 +# CONFIG_RTL8192CE is not set
 +# CONFIG_RTL8192SE is not set
 +# CONFIG_RTL8192DE is not set
++CONFIG_RTL_CARDS=y
++CONFIG_RTLWIFI=y
++CONFIG_RTLWIFI_USB=y
++CONFIG_RTL8192C_COMMON=y
++CONFIG_RTL8192CU=y
 +# CONFIG_RTL8723AE is not set
 +# CONFIG_RTL8188EE is not set
 +# CONFIG_VMXNET3 is not set
@@ -6607,7 +6612,6 @@ index 0000000..35c76bb
 +CONFIG_MFD_BD7181X=y
 +CONFIG_REGULATOR_BD7181X=y
 +CONFIG_RTC_DRV_BD7181X=y
-+
 diff --git a/arch/arm/mach-imx/mach-imx6q.c b/arch/arm/mach-imx/mach-imx6q.c
 index 039d9c2..95ddc7d 100644
 --- a/arch/arm/mach-imx/mach-imx6q.c
