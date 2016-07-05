@@ -4539,10 +4539,10 @@ index 0000000..6bd5eec
 +
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit.dts b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
 new file mode 100644
-index 0000000..31e8c17
+index 0000000..ddfc8b3
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
-@@ -0,0 +1,939 @@
+@@ -0,0 +1,938 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -4635,7 +4635,6 @@ index 0000000..31e8c17
 +			regulator-min-microvolt = <3300000>;
 +			regulator-max-microvolt = <3300000>;
 +			gpio = <&gpio5 2 GPIO_ACTIVE_HIGH>;
-+			startup-delay-us = <200000>;
 +			enable-active-high;
 +		};
 +
@@ -5484,10 +5483,10 @@ index 0000000..31e8c17
 +
 diff --git a/arch/arm/configs/imx6_ea_android_defconfig b/arch/arm/configs/imx6_ea_android_defconfig
 new file mode 100644
-index 0000000..2edcb74
+index 0000000..f824d9d
 --- /dev/null
 +++ b/arch/arm/configs/imx6_ea_android_defconfig
-@@ -0,0 +1,1124 @@
+@@ -0,0 +1,1125 @@
 +CONFIG_KERNEL_LZO=y
 +CONFIG_SYSVIPC=y
 +CONFIG_NO_HZ=y
@@ -6612,6 +6611,7 @@ index 0000000..2edcb74
 +CONFIG_MFD_BD7181X=y
 +CONFIG_REGULATOR_BD7181X=y
 +CONFIG_RTC_DRV_BD7181X=y
++
 diff --git a/arch/arm/mach-imx/mach-imx6q.c b/arch/arm/mach-imx/mach-imx6q.c
 index 039d9c2..95ddc7d 100644
 --- a/arch/arm/mach-imx/mach-imx6q.c
