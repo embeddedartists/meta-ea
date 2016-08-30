@@ -5485,10 +5485,10 @@ index 0000000..6bd5eec
 +
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit.dts b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
 new file mode 100644
-index 0000000..ddfc8b3
+index 0000000..d01642f
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
-@@ -0,0 +1,938 @@
+@@ -0,0 +1,1012 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -5580,8 +5580,9 @@ index 0000000..ddfc8b3
 +			regulator-name = "VDD_SD1";
 +			regulator-min-microvolt = <3300000>;
 +			regulator-max-microvolt = <3300000>;
-+			gpio = <&gpio5 2 GPIO_ACTIVE_HIGH>;
++			/* gpio = <&gpio5 2 GPIO_ACTIVE_HIGH>; */
 +			enable-active-high;
++			startup-delay-us = <200000>;
 +		};
 +
 +		wlreg_on: fixedregulator@100 {
@@ -5667,10 +5668,19 @@ index 0000000..ddfc8b3
 +};
 +
 +
++&flexcan1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_flexcan1>;
++	xceiver-supply = <&reg_can2_3v3>;
++	trx-en-gpio = <&gpio2 23 GPIO_ACTIVE_LOW>;
++	status = "okay";
++};
++
 +&flexcan2 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_flexcan2>;
 +	xceiver-supply = <&reg_can2_3v3>;
++	trx-en-gpio = <&gpio2 23 GPIO_ACTIVE_LOW>;
 +	status = "okay";
 +};
 +
@@ -5947,6 +5957,7 @@ index 0000000..ddfc8b3
 +				MX7D_PAD_GPIO1_IO08__SD1_VSELECT	0x59 /* VSELECT */
 +				MX7D_PAD_SD1_CD_B__GPIO5_IO0		0x59 /* CD */
 +				MX7D_PAD_SD1_RESET_B__GPIO5_IO2		0x59 /* vmmc */
++				MX7D_PAD_EPDC_SDCE3__GPIO2_IO23         0x59
 +			>;
 +		};
 +
@@ -6038,6 +6049,13 @@ index 0000000..ddfc8b3
 +			>;
 +		};
 +
++		pinctrl_flexcan1: flexcan1grp {
++			fsl,pins = <
++				MX7D_PAD_GPIO1_IO12__FLEXCAN1_RX	0x59
++				MX7D_PAD_GPIO1_IO13__FLEXCAN1_TX	0x59
++			>;
++		};
++
 +		pinctrl_flexcan2: flexcan2grp {
 +			fsl,pins = <
 +				MX7D_PAD_GPIO1_IO14__FLEXCAN2_RX	0x59
@@ -6116,8 +6134,22 @@ index 0000000..ddfc8b3
 +
 +		pinctrl_uart1: uart1grp {
 +			fsl,pins = <
-+				MX7D_PAD_UART1_TX_DATA__UART1_DCE_TX 0x79
-+				MX7D_PAD_UART1_RX_DATA__UART1_DCE_RX 0x79
++				MX7D_PAD_UART1_TX_DATA__UART1_DCE_TX 0x56
++				MX7D_PAD_UART1_RX_DATA__UART1_DCE_RX 0x56
++			>;
++		};
++
++		pinctrl_uart2: uart2grp {
++			fsl,pins = <
++				MX7D_PAD_UART2_TX_DATA__UART2_DCE_TX 0x56
++				MX7D_PAD_UART2_RX_DATA__UART2_DCE_RX 0x56
++			>;
++		};
++
++		pinctrl_uart3: uart3grp {
++			fsl,pins = <
++				MX7D_PAD_UART3_TX_DATA__UART3_DCE_TX 0x56
++				MX7D_PAD_UART3_RX_DATA__UART3_DCE_RX 0x56
 +			>;
 +		};
 +
@@ -6259,6 +6291,17 @@ index 0000000..ddfc8b3
 +			>;
 +		};
 +
++		pinctrl_qspi1_1: qspi1grp_1 {
++			fsl,pins = <
++				MX7D_PAD_EPDC_DATA00__QSPI_A_DATA0 0x51
++				MX7D_PAD_EPDC_DATA01__QSPI_A_DATA1 0x51
++				MX7D_PAD_EPDC_DATA02__QSPI_A_DATA2 0x51
++				MX7D_PAD_EPDC_DATA03__QSPI_A_DATA3 0x51
++				MX7D_PAD_EPDC_DATA05__QSPI_A_SCLK 0x51
++				MX7D_PAD_EPDC_DATA06__QSPI_A_SS0_B 0x51
++			>;
++		};
++
 +	};
 +};
 +
@@ -6371,6 +6414,21 @@ index 0000000..ddfc8b3
 +	status = "okay";
 +};
 +
++&uart2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart2>;
++	assigned-clocks = <&clks IMX7D_UART2_ROOT_SRC>;
++	assigned-clock-parents = <&clks IMX7D_OSC_24M_CLK>;
++	status = "okay";
++};
++&uart3 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart3>;
++	assigned-clocks = <&clks IMX7D_UART3_ROOT_SRC>;
++	assigned-clock-parents = <&clks IMX7D_OSC_24M_CLK>;
++	status = "okay";
++};
++
 +&usbotg1 {
 +	vbus-supply = <&reg_usb_otg1_vbus>;
 +	srp-disable;
@@ -6424,6 +6482,22 @@ index 0000000..ddfc8b3
 +	status = "okay";
 +};
 +
++&qspi1 {
++        pinctrl-names = "default";
++        pinctrl-0 = <&pinctrl_qspi1_1>;
++        status = "okay";
++        ddrsmp=<0>;
++
++        flash0: n25q256a@0 {
++                #address-cells = <1>;
++                #size-cells = <1>;
++                compatible = "micron,n25q256a";
++                spi-max-frequency = <29000000>;
++                /* take off one dummy cycle */
++                spi-nor,ddr-quad-read-dummy = <6>;
++                reg = <0>;
++        };
++};
 +
 +
 +
@@ -7721,7 +7795,7 @@ index 4accb3a..e3d0fea 100644
  }
  
 diff --git a/arch/arm/mach-imx/mach-imx7d.c b/arch/arm/mach-imx/mach-imx7d.c
-index 4d06b2d..877f63e 100644
+index 4d06b2d..e105d75 100644
 --- a/arch/arm/mach-imx/mach-imx7d.c
 +++ b/arch/arm/mach-imx/mach-imx7d.c
 @@ -19,6 +19,64 @@
@@ -7789,12 +7863,13 @@ index 4d06b2d..877f63e 100644
  static int ar8031_phy_fixup(struct phy_device *dev)
  {
  	u16 val;
-@@ -119,6 +177,11 @@ static void __init imx7d_init_late(void)
+@@ -119,6 +177,12 @@ static void __init imx7d_init_late(void)
  	if (IS_ENABLED(CONFIG_ARM_IMX7D_CPUFREQ)) {
  		platform_device_register_simple("imx7d-cpufreq", -1, NULL, 0);
  	}
 +
-+        if (of_machine_is_compatible("fsl,imx7dea-com"))
++        if (of_machine_is_compatible("fsl,imx7dea-com") ||
++            of_machine_is_compatible("fsl,imx7dea-ucom"))
 +                imx7dea_flexcan_fixup();
 +
 +
