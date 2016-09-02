@@ -11410,11 +11410,10 @@ index 0000000..445fcf9
 +CONFIG_DM_THERMAL=y
 diff --git a/configs/mx7dea-com_defconfig b/configs/mx7dea-com_defconfig
 new file mode 100644
-index 0000000..1437cc3
+index 0000000..061a0a8
 --- /dev/null
 +++ b/configs/mx7dea-com_defconfig
-@@ -0,0 +1,8 @@
-+CONFIG_SPL=y
+@@ -0,0 +1,7 @@
 +CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx7dea-com/imximage.cfg,MX7D"
 +CONFIG_ARM=y
 +CONFIG_TARGET_MX7DEA_COM=y
@@ -11438,11 +11437,10 @@ index 0000000..081423d
 +CONFIG_DM_THERMAL=y
 diff --git a/configs/mx7dea-ucom_defconfig b/configs/mx7dea-ucom_defconfig
 new file mode 100644
-index 0000000..67a1b27
+index 0000000..437eaef
 --- /dev/null
 +++ b/configs/mx7dea-ucom_defconfig
-@@ -0,0 +1,8 @@
-+CONFIG_SPL=y
+@@ -0,0 +1,7 @@
 +CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=board/embeddedartists/mx7dea-ucom/imximage.cfg,MX7D"
 +CONFIG_ARM=y
 +CONFIG_TARGET_MX7DEA_UCOM=y
