@@ -78,10 +78,19 @@ index fef2231..2357072 100644
  #endif
  
 diff --git a/arch/arm/imx-common/Makefile b/arch/arm/imx-common/Makefile
-index 70f22b2..0fa6936 100644
+index 70f22b2..ee8bd81 100644
 --- a/arch/arm/imx-common/Makefile
 +++ b/arch/arm/imx-common/Makefile
-@@ -30,6 +30,7 @@ endif
+@@ -19,6 +19,8 @@ obj-y  += timer.o
+ endif
+ ifeq ($(SOC),$(filter $(SOC),mx7))
+ obj-y	+= cpu.o
++obj-$(CONFIG_IMX_VIDEO_SKIP) += video.o
++obj-$(CONFIG_CMD_EADISP) += eadisp.o eatouch.o
+ obj-$(CONFIG_SYS_I2C_MXC) += i2c-mxv7.o
+ obj-$(CONFIG_GPT_TIMER) += timer.o
+ obj-$(CONFIG_SYSCOUNTER_TIMER) += syscounter.o
+@@ -30,6 +32,7 @@ endif
  ifeq ($(SOC),$(filter $(SOC),mx6))
  obj-$(CONFIG_CMD_SATA) += sata.o
  obj-$(CONFIG_IMX_VIDEO_SKIP) += video.o
@@ -91,10 +100,10 @@ index 70f22b2..0fa6936 100644
  obj-$(CONFIG_SYSCOUNTER_TIMER) += syscounter.o
 diff --git a/arch/arm/imx-common/eadisp.c b/arch/arm/imx-common/eadisp.c
 new file mode 100644
-index 0000000..d01d21b
+index 0000000..766c457
 --- /dev/null
 +++ b/arch/arm/imx-common/eadisp.c
-@@ -0,0 +1,928 @@
+@@ -0,0 +1,934 @@
 +/*
 + * SPDX-License-Identifier:	GPL-2.0+
 + */
@@ -103,7 +112,9 @@ index 0000000..d01d21b
 +#include <asm/errno.h>
 +#include <asm/arch/clock.h>
 +#include <asm/arch/crm_regs.h>
-+#include <asm/arch/mxc_hdmi.h>
++#if !defined(CONFIG_MX7D)
++  #include <asm/arch/mxc_hdmi.h>
++#endif
 +#include <asm/gpio.h>
 +#include <asm/imx-common/eadisp.h>
 +#include <asm/io.h>
@@ -112,7 +123,7 @@ index 0000000..d01d21b
 +#include <malloc.h>
 +#include <video_fb.h>
 +#include <stdlib.h>
-+#if defined(CONFIG_MX6SX) || defined(CONFIG_MX6UL)
++#if defined(CONFIG_MX6SX) || defined(CONFIG_MX6UL) || defined(CONFIG_MX7D)
 +  #include <linux/fb.h>
 +  #include <mxsfb.h>
 +#endif
@@ -818,7 +829,11 @@ index 0000000..d01d21b
 +static int init_display(const struct display_info_t *di)
 +{
 +#if defined(CONFIG_MX6SX) || defined(CONFIG_MX6UL) || defined(CONFIG_MX7D)
++    #if defined(CONFIG_MX7D)
++	uint32_t lcdif_base_addr =  ELCDIF1_IPS_BASE_ADDR;
++    #else
 +	uint32_t lcdif_base_addr = (di->fbtype==FB_RGB) ? LCDIF1_BASE_ADDR : LCDIF2_BASE_ADDR;
++    #endif
 +	int bpp;
 +	switch(di->pixfmt) {
 +	case IPU_PIX_FMT_RGB666:
@@ -8304,10 +8319,10 @@ index 0000000..d23b3bc
 +#endif
 diff --git a/board/embeddedartists/mx7dea-com/mx7dea-com.c b/board/embeddedartists/mx7dea-com/mx7dea-com.c
 new file mode 100644
-index 0000000..9781d26
+index 0000000..6e31d8b
 --- /dev/null
 +++ b/board/embeddedartists/mx7dea-com/mx7dea-com.c
-@@ -0,0 +1,1163 @@
+@@ -0,0 +1,1214 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -8321,6 +8336,10 @@ index 0000000..9781d26
 +#include <asm/gpio.h>
 +#include <asm/imx-common/iomux-v3.h>
 +#include <asm/imx-common/boot_mode.h>
++#if defined(CONFIG_CMD_EADISP)
++#include <asm/imx-common/eadisp.h>
++#include <asm/imx-common/eatouch.h>
++#endif
 +#include <asm/io.h>
 +#include <linux/sizes.h>
 +#include <common.h>
@@ -8671,13 +8690,19 @@ index 0000000..9781d26
 +	MX7D_PAD_LCD_DATA22__LCD_DATA22 | MUX_PAD_CTRL(LCD_PAD_CTRL),
 +	MX7D_PAD_LCD_DATA23__LCD_DATA23 | MUX_PAD_CTRL(LCD_PAD_CTRL),
 +
-+	MX7D_PAD_LCD_RESET__GPIO3_IO4	| MUX_PAD_CTRL(LCD_PAD_CTRL),
++	/*
++	 * Use GPIO for Brightness adjustment, duty cycle = period.
++	 */
++	MX7D_PAD_GPIO1_IO01__GPIO1_IO1 | MUX_PAD_CTRL(NO_PAD_CTRL),
++
++	/* Display power enable */
++	MX7D_PAD_EPDC_GDOE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
++
++	/* Backlight enable */
++	MX7D_PAD_EPDC_GDCLK__GPIO2_IO24 | MUX_PAD_CTRL(NO_PAD_CTRL),
 +};
 +
-+static iomux_v3_cfg_t const pwm_pads[] = {
-+	/* Use GPIO for Brightness adjustment, duty cycle = period */
-+	MX7D_PAD_GPIO1_IO01__GPIO1_IO1 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+};
++#ifdef CONFIG_CMD_EADISP
 +
 +struct lcd_panel_info_t {
 +	unsigned int lcdif_base_addr;
@@ -8686,19 +8711,52 @@ index 0000000..9781d26
 +	struct fb_videomode mode;
 +};
 +
++void board_enable_rgb(const struct display_info_t *di, int enable)
++{
++	if (enable) {
++		imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
++
++		mdelay(100); /* let panel sync up before enabling backlight */
++
++		/* Power up the LCD */
++		gpio_direction_output(IMX_GPIO_NR(2, 25) , 1);
++
++		/* Set Brightness to high */
++		gpio_direction_output(IMX_GPIO_NR(1, 1) , 1);
++
++		/* Backlight power enable */
++		gpio_direction_output(IMX_GPIO_NR(2, 24) , 1);
++	}
++}
++
++static const struct display_info_t displays[] = {
++	/* RGB */
++	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_43480272EF(RGB, 0, 0),
++	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_NHD_70800480EF(RGB, 0, 0),
++	EADISP_UMSH_8864(RGB, 0, 0),
++	EADISP_UMSH_8596_30T(RGB, 0, 0),
++	EADISP_UMSH_8596_33T(RGB, 0, 0),
++	EADISP_ROGIN_RX050A(RGB, 0, 0),
++};
++
++#else /* CONFIG_CMD_EADISP */
++
 +void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 +{
 +	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
 +
-+	imx_iomux_v3_setup_multiple_pads(pwm_pads, ARRAY_SIZE(pwm_pads));
++	mdelay(100); /* let panel sync up before enabling backlight */
 +
-+	/* Reset LCD */
-+	gpio_direction_output(IMX_GPIO_NR(3, 4) , 0);
-+	udelay(500);
-+	gpio_direction_output(IMX_GPIO_NR(3, 4) , 1);
++	/* Power up the LCD */
++	gpio_direction_output(IMX_GPIO_NR(2, 25) , 1);
 +
 +	/* Set Brightness to high */
 +	gpio_direction_output(IMX_GPIO_NR(1, 1) , 1);
++
++	/* Backlight power enable */
++	gpio_direction_output(IMX_GPIO_NR(2, 24) , 1);
 +}
 +
 +static struct lcd_panel_info_t const displays[] = {{
@@ -8706,15 +8764,15 @@ index 0000000..9781d26
 +	.depth = 24,
 +	.enable	= do_enable_parallel_lcd,
 +	.mode	= {
-+		.name			= "TFT43AB",
-+		.xres           = 480,
-+		.yres           = 272,
-+		.pixclock       = 108695,
-+		.left_margin    = 8,
-+		.right_margin   = 4,
-+		.upper_margin   = 2,
-+		.lower_margin   = 4,
-+		.hsync_len      = 41,
++		.name			= "Innolux-AT070TN",
++		.xres           = 800,
++		.yres           = 480,
++		.pixclock       = 29850,
++		.left_margin    = 89,
++		.right_margin   = 164,
++		.upper_margin   = 75,
++		.lower_margin   = 75,
++		.hsync_len      = 10,
 +		.vsync_len      = 10,
 +		.sync           = 0,
 +		.vmode          = FB_VMODE_NONINTERLACED
@@ -8755,7 +8813,8 @@ index 0000000..9781d26
 +
 +	return 0;
 +}
-+#endif
++#endif /* CONFIG_CMD_EADISP */
++#endif /* CONFIG_VIDEO_MXS */
 +
 +#ifdef CONFIG_FEC_MXC
 +static iomux_v3_cfg_t const fec1_pads[] = {
@@ -9293,6 +9352,9 @@ index 0000000..9781d26
 +	setup_epdc();
 +#endif
 +
++#ifdef CONFIG_CMD_EADISP
++	eadisp_setup_display(displays, ARRAY_SIZE(displays));
++#endif
 +	return 0;
 +}
 +
@@ -9323,6 +9385,10 @@ index 0000000..9781d26
 +
 +#ifdef CONFIG_ENV_IS_IN_MMC
 +	board_late_mmc_init();
++#endif
++
++#ifdef CONFIG_CMD_EADISP
++	eatouch_init();
 +#endif
 +
 +	imx_iomux_v3_setup_multiple_pads(wdog_pads, ARRAY_SIZE(wdog_pads));
@@ -9799,10 +9865,10 @@ index 0000000..e1f2957
 +#endif
 diff --git a/board/embeddedartists/mx7dea-ucom/mx7dea-ucom.c b/board/embeddedartists/mx7dea-ucom/mx7dea-ucom.c
 new file mode 100644
-index 0000000..9781d26
+index 0000000..67d29df
 --- /dev/null
 +++ b/board/embeddedartists/mx7dea-ucom/mx7dea-ucom.c
-@@ -0,0 +1,1163 @@
+@@ -0,0 +1,1249 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -9816,6 +9882,10 @@ index 0000000..9781d26
 +#include <asm/gpio.h>
 +#include <asm/imx-common/iomux-v3.h>
 +#include <asm/imx-common/boot_mode.h>
++#if defined(CONFIG_CMD_EADISP)
++#include <asm/imx-common/eadisp.h>
++#include <asm/imx-common/eatouch.h>
++#endif
 +#include <asm/io.h>
 +#include <linux/sizes.h>
 +#include <common.h>
@@ -10166,13 +10236,19 @@ index 0000000..9781d26
 +	MX7D_PAD_LCD_DATA22__LCD_DATA22 | MUX_PAD_CTRL(LCD_PAD_CTRL),
 +	MX7D_PAD_LCD_DATA23__LCD_DATA23 | MUX_PAD_CTRL(LCD_PAD_CTRL),
 +
-+	MX7D_PAD_LCD_RESET__GPIO3_IO4	| MUX_PAD_CTRL(LCD_PAD_CTRL),
++	/*
++	 * Use GPIO for Brightness adjustment, duty cycle = period.
++	 */
++	MX7D_PAD_GPIO1_IO01__GPIO1_IO1 | MUX_PAD_CTRL(NO_PAD_CTRL),
++
++	/* Display power enable */
++	MX7D_PAD_EPDC_GDOE__GPIO2_IO25 | MUX_PAD_CTRL(NO_PAD_CTRL),
++
++	/* Backlight enable */
++	MX7D_PAD_EPDC_GDCLK__GPIO2_IO24 | MUX_PAD_CTRL(NO_PAD_CTRL),
 +};
 +
-+static iomux_v3_cfg_t const pwm_pads[] = {
-+	/* Use GPIO for Brightness adjustment, duty cycle = period */
-+	MX7D_PAD_GPIO1_IO01__GPIO1_IO1 | MUX_PAD_CTRL(NO_PAD_CTRL),
-+};
++#ifdef CONFIG_CMD_EADISP
 +
 +struct lcd_panel_info_t {
 +	unsigned int lcdif_base_addr;
@@ -10181,19 +10257,52 @@ index 0000000..9781d26
 +	struct fb_videomode mode;
 +};
 +
++void board_enable_rgb(const struct display_info_t *di, int enable)
++{
++	if (enable) {
++		imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
++
++		mdelay(100); /* let panel sync up before enabling backlight */
++
++		/* Power up the LCD */
++		gpio_direction_output(IMX_GPIO_NR(2, 25) , 1);
++
++		/* Set Brightness to high */
++		gpio_direction_output(IMX_GPIO_NR(1, 1) , 1);
++
++		/* Backlight power enable */
++		gpio_direction_output(IMX_GPIO_NR(2, 24) , 1);
++	}
++}
++
++static const struct display_info_t displays[] = {
++	/* RGB */
++	EADISP_INNOLUX_AT070TN(RGB, 0, 0),
++	EADISP_NHD_43480272EF(RGB, 0, 0),
++	EADISP_NHD_50800480TF(RGB, 0, 0),
++	EADISP_NHD_70800480EF(RGB, 0, 0),
++	EADISP_UMSH_8864(RGB, 0, 0),
++	EADISP_UMSH_8596_30T(RGB, 0, 0),
++	EADISP_UMSH_8596_33T(RGB, 0, 0),
++	EADISP_ROGIN_RX050A(RGB, 0, 0),
++};
++
++#else /* CONFIG_CMD_EADISP */
++
 +void do_enable_parallel_lcd(struct lcd_panel_info_t const *dev)
 +{
 +	imx_iomux_v3_setup_multiple_pads(lcd_pads, ARRAY_SIZE(lcd_pads));
 +
-+	imx_iomux_v3_setup_multiple_pads(pwm_pads, ARRAY_SIZE(pwm_pads));
++	mdelay(100); /* let panel sync up before enabling backlight */
 +
-+	/* Reset LCD */
-+	gpio_direction_output(IMX_GPIO_NR(3, 4) , 0);
-+	udelay(500);
-+	gpio_direction_output(IMX_GPIO_NR(3, 4) , 1);
++	/* Power up the LCD */
++	gpio_direction_output(IMX_GPIO_NR(2, 25) , 1);
 +
 +	/* Set Brightness to high */
 +	gpio_direction_output(IMX_GPIO_NR(1, 1) , 1);
++
++	/* Backlight power enable */
++	gpio_direction_output(IMX_GPIO_NR(2, 24) , 1);
 +}
 +
 +static struct lcd_panel_info_t const displays[] = {{
@@ -10201,15 +10310,15 @@ index 0000000..9781d26
 +	.depth = 24,
 +	.enable	= do_enable_parallel_lcd,
 +	.mode	= {
-+		.name			= "TFT43AB",
-+		.xres           = 480,
-+		.yres           = 272,
-+		.pixclock       = 108695,
-+		.left_margin    = 8,
-+		.right_margin   = 4,
-+		.upper_margin   = 2,
-+		.lower_margin   = 4,
-+		.hsync_len      = 41,
++		.name			= "Innolux-AT070TN",
++		.xres           = 800,
++		.yres           = 480,
++		.pixclock       = 29850,
++		.left_margin    = 89,
++		.right_margin   = 164,
++		.upper_margin   = 75,
++		.lower_margin   = 75,
++		.hsync_len      = 10,
 +		.vsync_len      = 10,
 +		.sync           = 0,
 +		.vmode          = FB_VMODE_NONINTERLACED
@@ -10250,7 +10359,8 @@ index 0000000..9781d26
 +
 +	return 0;
 +}
-+#endif
++#endif /* CONFIG_CMD_EADISP */
++#endif /* CONFIG_VIDEO_MXS */
 +
 +#ifdef CONFIG_FEC_MXC
 +static iomux_v3_cfg_t const fec1_pads[] = {
@@ -10788,6 +10898,9 @@ index 0000000..9781d26
 +	setup_epdc();
 +#endif
 +
++#ifdef CONFIG_CMD_EADISP
++	eadisp_setup_display(displays, ARRAY_SIZE(displays));
++#endif
 +	return 0;
 +}
 +
@@ -10804,9 +10917,44 @@ index 0000000..9781d26
 +
 +#ifdef CONFIG_POWER
 +#define I2C_PMIC	0
++#define POWER_PMIC_BD71815_I2C_ADDR (0x4B)
++#define BD71815_REG_LDO_MODE1 (0x10)
++#define BD71815_REG_LDO3_VOLT (0x16)
 +int power_init_board(void)
 +{
-+	return 0;
++        uint8_t value;
++
++        /*
++         * Fix for LDO3 when DCIN is not supplied.
++         */
++
++        i2c_set_bus_num(I2C_PMIC);
++
++        if (i2c_probe(POWER_PMIC_BD71815_I2C_ADDR)) {
++                printf("failed to probe PMIC (%x)\n", POWER_PMIC_BD71815_I2C_ADDR);
++                return -1;
++        }
++
++        if (i2c_read(POWER_PMIC_BD71815_I2C_ADDR, BD71815_REG_LDO_MODE1, 1, &value, 1)) {
++                printf("power_init_board: failed to read register 0x10\n");
++                return -1;
++        }
++
++        /* Bit 2: LDO3_REG_MODE_0. When set to 1 LDO3 is controlled via register */
++        value |= (1<<2);
++        if (i2c_write(POWER_PMIC_BD71815_I2C_ADDR, BD71815_REG_LDO_MODE1, 1, &value, 1)) {
++                printf("power_init_board: failed to write to reg 0x10\n");
++        }
++
++        /* 3.15V */
++        value = 0x2f;
++        if (i2c_write(POWER_PMIC_BD71815_I2C_ADDR, BD71815_REG_LDO3_VOLT, 1, &value, 1)) {
++                printf("power_init_board: failed to write to reg 0x16\n");
++        }
++
++
++
++        return 0;
 +}
 +#endif
 +
@@ -10818,6 +10966,10 @@ index 0000000..9781d26
 +
 +#ifdef CONFIG_ENV_IS_IN_MMC
 +	board_late_mmc_init();
++#endif
++
++#ifdef CONFIG_CMD_EADISP
++	eatouch_init();
 +#endif
 +
 +	imx_iomux_v3_setup_multiple_pads(wdog_pads, ARRAY_SIZE(wdog_pads));
@@ -12707,10 +12859,10 @@ index 0000000..74547ed
 +#endif
 diff --git a/include/configs/mx7dea-com.h b/include/configs/mx7dea-com.h
 new file mode 100644
-index 0000000..1b125d4
+index 0000000..dc3ee5e
 --- /dev/null
 +++ b/include/configs/mx7dea-com.h
-@@ -0,0 +1,465 @@
+@@ -0,0 +1,467 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -12938,7 +13090,7 @@ index 0000000..1b125d4
 +	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 +	"mmcautodetect=yes\0" \
 +	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-+		"root=${mmcroot}\0" \
++		"root=${mmcroot} ${args_from_script}\0" \
 +	"loadbootscript=" \
 +		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 +	"bootscript=echo Running bootscript from mmc ...; " \
@@ -12962,7 +13114,7 @@ index 0000000..1b125d4
 +		"fi;\0" \
 +	"netargs=setenv bootargs console=${console},${baudrate} " \
 +		"root=/dev/nfs " \
-+	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
++	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp ${args_from_script}\0" \
 +		"netboot=echo Booting from net ...; " \
 +		"run netargs; " \
 +		"if test ${ip_dyn} = yes; then " \
@@ -13116,6 +13268,8 @@ index 0000000..1b125d4
 +#endif
 +
 +#define CONFIG_VIDEO
++#define CONFIG_CMD_EADISP
++
 +#ifdef CONFIG_VIDEO
 +#define	CONFIG_CFB_CONSOLE
 +#define	CONFIG_VIDEO_MXS
@@ -13178,10 +13332,10 @@ index 0000000..1b125d4
 +#endif	/* __MX7D_COM_KIT_CONFIG_H */
 diff --git a/include/configs/mx7dea-ucom.h b/include/configs/mx7dea-ucom.h
 new file mode 100644
-index 0000000..e911c91
+index 0000000..9359925
 --- /dev/null
 +++ b/include/configs/mx7dea-ucom.h
-@@ -0,0 +1,465 @@
+@@ -0,0 +1,467 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -13409,7 +13563,7 @@ index 0000000..e911c91
 +	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
 +	"mmcautodetect=yes\0" \
 +	"mmcargs=setenv bootargs console=${console},${baudrate} " \
-+		"root=${mmcroot}\0" \
++		"root=${mmcroot} ${args_from_script}\0" \
 +	"loadbootscript=" \
 +		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 +	"bootscript=echo Running bootscript from mmc ...; " \
@@ -13433,7 +13587,7 @@ index 0000000..e911c91
 +		"fi;\0" \
 +	"netargs=setenv bootargs console=${console},${baudrate} " \
 +		"root=/dev/nfs " \
-+	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
++	"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp ${args_from_script}\0" \
 +		"netboot=echo Booting from net ...; " \
 +		"run netargs; " \
 +		"if test ${ip_dyn} = yes; then " \
@@ -13587,6 +13741,8 @@ index 0000000..e911c91
 +#endif
 +
 +#define CONFIG_VIDEO
++#define CONFIG_CMD_EADISP
++
 +#ifdef CONFIG_VIDEO
 +#define	CONFIG_CFB_CONSOLE
 +#define	CONFIG_VIDEO_MXS

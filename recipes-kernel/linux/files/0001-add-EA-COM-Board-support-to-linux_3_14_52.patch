@@ -4498,10 +4498,10 @@ index 0000000..312f485
 +};
 diff --git a/arch/arm/boot/dts/imx7dea-com-kit.dts b/arch/arm/boot/dts/imx7dea-com-kit.dts
 new file mode 100644
-index 0000000..b27623a2
+index 0000000..b644cea
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-com-kit.dts
-@@ -0,0 +1,939 @@
+@@ -0,0 +1,973 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -4519,11 +4519,20 @@ index 0000000..b27623a2
 +	model = "Embedded Artists i.MX7 Dual COM Kit";
 +	compatible = "fsl,imx7dea-com", "fsl,imx7d";
 +
++	/* Aliases to allow u-boot to modify the device tree */
++	aliases {
++		fb_rgb = &lcdif;
++		t_rgb = &t_lcd;
++		bl_rgb = &backlight_lcd;
++		rgb = &display0;
++		ts_con_rgb = &i2c1;
++	};
++
 +	memory {
 +		reg = <0x80000000 0x80000000>;
 +	};
 +
-+	backlight: backlight {
++	backlight_lcd: backlight {
 +		compatible = "pwm-backlight";
 +		pwms = <&pwm1 0 5000000>;
 +		brightness-levels = <0 4 8 16 32 64 128 255>;
@@ -4836,11 +4845,12 @@ index 0000000..b27623a2
 +                clocks = <&clks IMX7D_AUDIO_MCLK_ROOT_CLK>;
 +        };
 +
-+        ar1021: ar1021@4d {
++        /* AR1021 touch controller through RGB display interface connector on Carrier Board */
++        ar1021_rgb@4d {
 +                compatible = "microchip,ar1021-i2c";
 +                reg = <0x4d>;
 +                pinctrl-names = "default";
-+                pinctrl-0 = <&pinctrl_ar1021_int>;
++                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
 +                ar1021,swap_xy;
@@ -4848,17 +4858,48 @@ index 0000000..b27623a2
 +                #ar1021,invert_y;
 +        };
 +
-+        egalax: egalax_ts_lvds0@04 {
++        /* eGalax touch controller through RGB display interface connector on Carrier Board */
++        egalax_ts_rgb@04 {
 +                compatible = "eeti,egalax_ts";
 +                reg = <0x04>;
 +                pinctrl-names = "default";
-+                pinctrl-0 = <&pinctrl_lvds0>;
-+                interrupt-parent = <&gpio2>;
-+                interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
-+                wakeup-gpios = <&gpio2 26 GPIO_ACTIVE_HIGH>;
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                wakeup-gpios = <&gpio5 9 GPIO_ACTIVE_HIGH>;
 +                status = "disabled";
 +        };
 +
++        /* FocalTech touch controller through RGB display interface connector on Carrier Board */
++        edt-ft5x06_rgb@38 {
++                compatible = "edt,edt-ft5x06";
++                reg = <0x38>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                status = "disabled";
++        };
++
++        /* Ilitek touch controller through RGB display interface connector on Carrier Board */
++        ilitek_aim_rgb@41 {
++                compatible = "ilitek,ilitek_aim";
++                reg = <0x41>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++        };
++
++        /* Sitronix touch controller through RGB display interface connector on Carrier Board */
++        sitronix_rgb@55 {
++                compatible = "sitronix,sitronix_i2c";
++                reg = <0x55>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++        };
 +};
 +
 +&i2c2 {
@@ -4900,18 +4941,11 @@ index 0000000..b27623a2
 +			>;
 +		};
 +
-+		pinctrl_ar1021_int: ar1021_intgrp {
++		pinctrl_rgb_connector: rgb_connector_grp {
 +			fsl,pins = <
 +				MX7D_PAD_SD2_CD_B__GPIO5_IO9          0x1f0b0
 + 			>;
 +		};
-+
-+                pinctrl_lvds0: lvds0_intgrp {
-+                        fsl,pins = <
-+                                MX7D_PAD_EPDC_GDRL__GPIO2_IO26          0x1f0b0
-+                        >;
-+                };
-+
 +
 +		pinctrl_ov5647: ov5647grp-1 {
 +			fsl,pins = <
@@ -5285,9 +5319,9 @@ index 0000000..b27623a2
 +		bus-width = <24>;
 +
 +                display-timings {
-+                        native-mode = <&timing0>;
-+
-+                        timing0: timing0 {
++                        native-mode = <&t_lcd>;
++                        t_lcd: t_lcd_default {
++                                /* values may be changed in bootscript */
 +                                clock-frequency = <33500000>;
 +                                hactive = <800>;
 +                                vactive = <480>;
@@ -5443,10 +5477,10 @@ index 0000000..b27623a2
 +
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts b/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts
 new file mode 100644
-index 0000000..6bd5eec
+index 0000000..d8b1c4c
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,70 @@
 +/*
 + * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
 + *
@@ -5460,35 +5494,69 @@ index 0000000..6bd5eec
 +
 +
 +/*
-+ * Disable the RGB interface to only have LVDS enabled
++ * Change settings to match the NXP/Freescale LVDS display connected
++ * to the RGB-to-LVDS bridge on the uCOM Adapter Board. The touch
++ * controller settings (ar1021 and egalax) and the timing0 values
++ * should be handled by the eadisp/eatouch command and not here.
++ * The backlight pin must be change from PWM1 (used by RGB) to PWM3
++ * when using LVDS.
 + */
 +
 +
-+&ar1021 {
++&i2c1 {
++    ar1021_rgb {
++	pinctrl-0 = <&pinctrl_lvds0>;
++	interrupt-parent = <&gpio2>;
++	interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
 +	status = "disabled";
-+};
++    };
 +
-+&egalax {
++    egalax_ts_rgb {
++	pinctrl-0 = <&pinctrl_lvds0>;
++	interrupt-parent = <&gpio2>;
++	interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
++	wakeup-gpios = <&gpio2 26 GPIO_ACTIVE_HIGH>;
 +	status = "okay";
++    };
++
++    edt-ft5x06_rgb {
++	pinctrl-0 = <&pinctrl_lvds0>;
++	interrupt-parent = <&gpio2>;
++	interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
++	status = "disabled";
++    };
++
++    ilitek_aim_rgb {
++	pinctrl-0 = <&pinctrl_lvds0>;
++	interrupt-parent = <&gpio2>;
++	interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
++	status = "disabled";
++    };
++
++    sitronix_rgb {
++	pinctrl-0 = <&pinctrl_lvds0>;
++	interrupt-parent = <&gpio2>;
++	interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
++	status = "disabled";
++    };
 +};
 +
-+&timing0 {
++&t_lcd {
 +        hactive = <1024>;
 +        vactive = <768>;
 +};
 +
-+&backlight {
++&backlight_lcd {
 +	pwms = <&pwm3 0 5000000>;
 +};
 +
 +
-+
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit.dts b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
 new file mode 100644
-index 0000000..d01642f
+index 0000000..df3ef5c
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
-@@ -0,0 +1,1012 @@
+@@ -0,0 +1,1053 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -5506,11 +5574,20 @@ index 0000000..d01642f
 +	model = "Embedded Artists i.MX7 Dual uCOM Kit";
 +	compatible = "fsl,imx7dea-ucom", "fsl,imx7d";
 +
++	/* Aliases to allow u-boot to modify the device tree */
++	aliases {
++		fb_rgb = &lcdif;
++		t_rgb = &t_lcd;
++		bl_rgb = &backlight_lcd;
++		rgb = &display0;
++		ts_con_rgb = &i2c1;
++	};
++
 + 	memory {
 +		reg = <0x80000000 0x80000000>;
 +	};
 +
-+	backlight: backlight {
++	backlight_lcd: backlight {
 +		compatible = "pwm-backlight";
 +		pwms = <&pwm1 0 5000000>;
 +		brightness-levels = <0 4 8 16 32 64 128 255>;
@@ -5897,11 +5974,12 @@ index 0000000..d01642f
 +                clocks = <&clks IMX7D_AUDIO_MCLK_ROOT_CLK>;
 +        };
 +
-+        ar1021: ar1021@4d {
++        /* AR1021 touch controller through RGB display interface connector on Carrier Board */
++        ar1021_rgb@4d {
 +                compatible = "microchip,ar1021-i2c";
 +                reg = <0x4d>;
 +                pinctrl-names = "default";
-+                pinctrl-0 = <&pinctrl_ar1021_int>;
++                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
 +                ar1021,swap_xy;
@@ -5909,17 +5987,48 @@ index 0000000..d01642f
 +                #ar1021,invert_y;
 +        };
 +
-+        egalax: egalax_ts_lvds0@04 {
++        /* eGalax touch controller through RGB display interface connector on Carrier Board */
++        egalax_ts_rgb@04 {
 +                compatible = "eeti,egalax_ts";
 +                reg = <0x04>;
 +                pinctrl-names = "default";
-+                pinctrl-0 = <&pinctrl_lvds0>;
-+                interrupt-parent = <&gpio2>;
-+                interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
-+                wakeup-gpios = <&gpio2 26 GPIO_ACTIVE_HIGH>;
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                wakeup-gpios = <&gpio5 9 GPIO_ACTIVE_HIGH>;
 +                status = "disabled";
 +        };
 +
++        /* FocalTech touch controller through RGB display interface connector on Carrier Board */
++        edt-ft5x06_rgb@38 {
++                compatible = "edt,edt-ft5x06";
++                reg = <0x38>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                status = "disabled";
++        };
++
++        /* Ilitek touch controller through RGB display interface connector on Carrier Board */
++        ilitek_aim_rgb@41 {
++                compatible = "ilitek,ilitek_aim";
++                reg = <0x41>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++        };
++
++        /* Sitronix touch controller through RGB display interface connector on Carrier Board */
++        sitronix_rgb@55 {
++                compatible = "sitronix,sitronix_i2c";
++                reg = <0x55>;
++                pinctrl-names = "default";
++                pinctrl-0 = <&pinctrl_rgb_connector>;
++                interrupt-parent = <&gpio5>;
++                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++        };
 +};
 +
 +&i2c2 {
@@ -5961,7 +6070,7 @@ index 0000000..d01642f
 +			>;
 +		};
 +
-+		pinctrl_ar1021_int: ar1021_intgrp {
++		pinctrl_rgb_connector: rgb_connector_grp {
 +			fsl,pins = <
 +				MX7D_PAD_SD2_CD_B__GPIO5_IO9          0x1f0b0
 + 			>;
@@ -6346,9 +6455,9 @@ index 0000000..d01642f
 +		bus-width = <24>;
 +
 +                display-timings {
-+                        native-mode = <&timing0>;
-+
-+                        timing0: timing0 {
++                        native-mode = <&t_lcd>;
++                        t_lcd: t_lcd_default {
++                                /* values may be changed in bootscript */
 +                                clock-frequency = <33500000>;
 +                                hactive = <800>;
 +                                vactive = <480>;
