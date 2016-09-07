@@ -1,8 +1,8 @@
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index cb770c3..e24f714 100644
+index cb770c3..e1fc247 100644
 --- a/arch/arm/boot/dts/Makefile
 +++ b/arch/arm/boot/dts/Makefile
-@@ -270,7 +270,18 @@ dtb-$(CONFIG_ARCH_MXC) += \
+@@ -270,7 +270,20 @@ dtb-$(CONFIG_ARCH_MXC) += \
  	imx7d-sdb-sim.dtb \
  	imx7d-sdb-touch.dtb \
  	imx7d-sdb-wm8960.dtb \
@@ -17,8 +17,10 @@ index cb770c3..e24f714 100644
 +	imx6ulea-com-kit.dtb \
 +	imx6ulea-com-kit-rf.dtb \
 +	imx7dea-ucom-kit.dtb \
++	imx7dea-ucom-kit-m4.dtb \
 +	imx7dea-ucom-kit-lvds.dtb \
-+	imx7dea-com-kit.dtb
++	imx7dea-com-kit.dtb \
++	imx7dea-com-kit-m4.dtb
  dtb-$(CONFIG_ARCH_MXS) += imx23-evk.dtb \
  	imx23-olinuxino.dtb \
  	imx23-stmp378x_devb.dtb \
@@ -4496,6 +4498,81 @@ index 0000000..312f485
 +
 +	};
 +};
+diff --git a/arch/arm/boot/dts/imx7dea-com-kit-m4.dts b/arch/arm/boot/dts/imx7dea-com-kit-m4.dts
+new file mode 100644
+index 0000000..78215aa
+--- /dev/null
++++ b/arch/arm/boot/dts/imx7dea-com-kit-m4.dts
+@@ -0,0 +1,69 @@
++/*
++ * Copyright (C) 2015 Freescale Semiconductor, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include "imx7dea-com-kit.dts"
++
++/ {
++	memory {
++		linux,usable-memory = <0x80000000 0x1ff00000>,
++				<0xa0000000 0x1ff00000>;
++	};
++
++	m4_tcm: tcml@007f8000 {
++		compatible = "fsl, m4_tcml";
++		reg = <0x007f8000 0x8000>;
++	};
++};
++
++&adc1 {
++	status = "disabled";
++};
++
++&adc2 {
++	status = "disabled";
++};
++
++&flexcan2 {
++	status = "disabled";
++};
++
++&i2c2 {
++	status = "disabled";
++};
++
++&gpt3 {
++	status = "disabled";
++};
++
++&gpt4 {
++	status = "disabled";
++};
++
++&mcctest{
++	status = "okay";
++};
++
++&mcctty{
++	status = "okay";
++};
++
++&ocram {
++	reg = <0x00901000 0xf000>;
++};
++
++&rpmsg{
++	status = "okay";
++};
++
++&uart2 {
++	status = "disabled";
++};
++
++&wdog3{
++	status = "disabled";
++};
 diff --git a/arch/arm/boot/dts/imx7dea-com-kit.dts b/arch/arm/boot/dts/imx7dea-com-kit.dts
 new file mode 100644
 index 0000000..b644cea
@@ -5551,6 +5628,81 @@ index 0000000..d8b1c4c
 +};
 +
 +
+diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit-m4.dts b/arch/arm/boot/dts/imx7dea-ucom-kit-m4.dts
+new file mode 100644
+index 0000000..c82a331
+--- /dev/null
++++ b/arch/arm/boot/dts/imx7dea-ucom-kit-m4.dts
+@@ -0,0 +1,69 @@
++/*
++ * Copyright (C) 2015 Freescale Semiconductor, Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include "imx7dea-ucom-kit.dts"
++
++/ {
++	memory {
++		linux,usable-memory = <0x80000000 0x1ff00000>,
++				<0xa0000000 0x1ff00000>;
++	};
++
++	m4_tcm: tcml@007f8000 {
++		compatible = "fsl, m4_tcml";
++		reg = <0x007f8000 0x8000>;
++	};
++};
++
++&adc1 {
++	status = "disabled";
++};
++
++&adc2 {
++	status = "disabled";
++};
++
++&flexcan2 {
++	status = "disabled";
++};
++
++&i2c2 {
++	status = "disabled";
++};
++
++&gpt3 {
++	status = "disabled";
++};
++
++&gpt4 {
++	status = "disabled";
++};
++
++&mcctest{
++	status = "okay";
++};
++
++&mcctty{
++	status = "okay";
++};
++
++&ocram {
++	reg = <0x00901000 0xf000>;
++};
++
++&rpmsg{
++	status = "okay";
++};
++
++&uart2 {
++	status = "disabled";
++};
++
++&wdog3{
++	status = "disabled";
++};
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit.dts b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
 new file mode 100644
 index 0000000..df3ef5c
