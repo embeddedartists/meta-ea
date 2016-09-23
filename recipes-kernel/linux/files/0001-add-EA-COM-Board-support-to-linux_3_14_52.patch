@@ -4575,10 +4575,10 @@ index 0000000..78215aa
 +};
 diff --git a/arch/arm/boot/dts/imx7dea-com-kit.dts b/arch/arm/boot/dts/imx7dea-com-kit.dts
 new file mode 100644
-index 0000000..b644cea
+index 0000000..7c9dad2
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-com-kit.dts
-@@ -0,0 +1,973 @@
+@@ -0,0 +1,983 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -4897,6 +4897,12 @@ index 0000000..b644cea
 +                };
 +        };
 +
++        at24@55 {
++                compatible = "at,24c64";
++                pagesize = <32>;
++                reg = <0x55>;
++        };
++
 +        ov5647_mipi: ov5647_mipi@36 {
 +                compatible = "ovti,ov5647_mipi";
 +                reg = <0x36>;
@@ -4955,6 +4961,7 @@ index 0000000..b644cea
 +                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                reset-gpios = <&gpio2 27 GPIO_ACTIVE_HIGH>;
 +                status = "disabled";
 +        };
 +
@@ -4966,6 +4973,7 @@ index 0000000..b644cea
 +                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                reset-gpios = <&gpio2 27 GPIO_ACTIVE_HIGH>;
 +        };
 +
 +        /* Sitronix touch controller through RGB display interface connector on Carrier Board */
@@ -4976,6 +4984,7 @@ index 0000000..b644cea
 +                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                reset-gpios = <&gpio2 27 GPIO_ACTIVE_HIGH>;
 +        };
 +};
 +
@@ -5015,12 +5024,14 @@ index 0000000..b644cea
 +				MX7D_PAD_SD1_CD_B__GPIO5_IO0		0x59 /* CD */
 +				MX7D_PAD_SD1_RESET_B__GPIO5_IO2		0x59 /* vmmc */
 +				MX7D_PAD_EPDC_SDCE3__GPIO2_IO23         0x59
++				MX7D_PAD_EPDC_DATA14__GPIO2_IO14        0x59  /* CAN_STBY */
 +			>;
 +		};
 +
 +		pinctrl_rgb_connector: rgb_connector_grp {
 +			fsl,pins = <
 +				MX7D_PAD_SD2_CD_B__GPIO5_IO9          0x1f0b0
++				MX7D_PAD_EPDC_GDSP__GPIO2_IO27        0x1f0b0
 + 			>;
 +		};
 +
@@ -5363,7 +5374,6 @@ index 0000000..b644cea
 +		pinctrl_hog_2: hoggrp-2 {
 +			fsl,pins = <
 +				MX7D_PAD_GPIO1_IO05__GPIO1_IO5	0x14
-+				MX7D_PAD_EPDC_DATA14__GPIO2_IO14 0x59  /* CAN_STBY */
 +				MX7D_PAD_GPIO1_IO00__WDOD1_WDOG_B 0x74
 +			>;
 +		};
@@ -5554,10 +5564,10 @@ index 0000000..b644cea
 +
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts b/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts
 new file mode 100644
-index 0000000..d8b1c4c
+index 0000000..b9f27c3
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit-lvds.dts
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,77 @@
 +/*
 + * Copyright (C) 2014-2015 Freescale Semiconductor, Inc.
 + *
@@ -5619,8 +5629,15 @@ index 0000000..d8b1c4c
 +};
 +
 +&t_lcd {
++        clock-frequency = <65000000>;
 +        hactive = <1024>;
 +        vactive = <768>;
++        hback-porch = <220>;
++        hfront-porch = <40>;
++        vback-porch = <21>;
++        vfront-porch = <7>;
++        hsync-len = <60>;
++        vsync-len = <10>;
 +};
 +
 +&backlight_lcd {
@@ -5705,10 +5722,10 @@ index 0000000..c82a331
 +};
 diff --git a/arch/arm/boot/dts/imx7dea-ucom-kit.dts b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
 new file mode 100644
-index 0000000..df3ef5c
+index 0000000..5bbf4fe
 --- /dev/null
 +++ b/arch/arm/boot/dts/imx7dea-ucom-kit.dts
-@@ -0,0 +1,1053 @@
+@@ -0,0 +1,1065 @@
 +/*
 + * Copyright (C) 2015 Freescale Semiconductor, Inc.
 + *
@@ -6035,8 +6052,8 @@ index 0000000..df3ef5c
 +                        wled_reg: wled {
 +                                regulator-min-microamp = <10>;
 +                                regulator-max-microamp = <25000>;
-+                                regulator-boot-on;
-+                                regulator-always-on;
++                                regulator-boot-off;
++                                regulator-always-off;
 +                        };
 +
 +		};
@@ -6101,6 +6118,12 @@ index 0000000..df3ef5c
 +		};
 +	};
 +
++        at24@55 {
++                compatible = "at,24c64";
++                pagesize = <32>;
++                reg = <0x55>;
++        };
++
 +        ov5647_mipi: ov5647_mipi@36 {
 +                compatible = "ovti,ov5647_mipi";
 +                reg = <0x36>;
@@ -6127,7 +6150,7 @@ index 0000000..df3ef5c
 +        };
 +
 +        /* AR1021 touch controller through RGB display interface connector on Carrier Board */
-+        ar1021_rgb@4d {
++        ar1021_rgb {
 +                compatible = "microchip,ar1021-i2c";
 +                reg = <0x4d>;
 +                pinctrl-names = "default";
@@ -6140,7 +6163,7 @@ index 0000000..df3ef5c
 +        };
 +
 +        /* eGalax touch controller through RGB display interface connector on Carrier Board */
-+        egalax_ts_rgb@04 {
++        egalax_ts_rgb {
 +                compatible = "eeti,egalax_ts";
 +                reg = <0x04>;
 +                pinctrl-names = "default";
@@ -6152,34 +6175,39 @@ index 0000000..df3ef5c
 +        };
 +
 +        /* FocalTech touch controller through RGB display interface connector on Carrier Board */
-+        edt-ft5x06_rgb@38 {
++        edt-ft5x06_rgb {
 +                compatible = "edt,edt-ft5x06";
 +                reg = <0x38>;
 +                pinctrl-names = "default";
 +                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                reset-gpios = <&gpio2 27 GPIO_ACTIVE_HIGH>;
 +                status = "disabled";
 +        };
 +
 +        /* Ilitek touch controller through RGB display interface connector on Carrier Board */
-+        ilitek_aim_rgb@41 {
++        ilitek_aim_rgb {
 +                compatible = "ilitek,ilitek_aim";
 +                reg = <0x41>;
 +                pinctrl-names = "default";
 +                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                reset-gpios = <&gpio2 27 GPIO_ACTIVE_HIGH>;
++                status = "disabled";
 +        };
 +
 +        /* Sitronix touch controller through RGB display interface connector on Carrier Board */
-+        sitronix_rgb@55 {
++        sitronix_rgb {
 +                compatible = "sitronix,sitronix_i2c";
 +                reg = <0x55>;
 +                pinctrl-names = "default";
 +                pinctrl-0 = <&pinctrl_rgb_connector>;
 +                interrupt-parent = <&gpio5>;
 +                interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
++                reset-gpios = <&gpio2 27 GPIO_ACTIVE_HIGH>;
++                status = "disabled";
 +        };
 +};
 +
@@ -6219,12 +6247,14 @@ index 0000000..df3ef5c
 +				MX7D_PAD_SD1_CD_B__GPIO5_IO0		0x59 /* CD */
 +				MX7D_PAD_SD1_RESET_B__GPIO5_IO2		0x59 /* vmmc */
 +				MX7D_PAD_EPDC_SDCE3__GPIO2_IO23         0x59
++				MX7D_PAD_EPDC_DATA14__GPIO2_IO14        0x59  /* CAN_STBY */
 +			>;
 +		};
 +
 +		pinctrl_rgb_connector: rgb_connector_grp {
 +			fsl,pins = <
 +				MX7D_PAD_SD2_CD_B__GPIO5_IO9          0x1f0b0
++				MX7D_PAD_EPDC_GDSP__GPIO2_IO27        0x1f0b0
 + 			>;
 +		};
 +
@@ -6574,7 +6604,6 @@ index 0000000..df3ef5c
 +		pinctrl_hog_2: hoggrp-2 {
 +			fsl,pins = <
 +				MX7D_PAD_GPIO1_IO05__GPIO1_IO5	0x14
-+				MX7D_PAD_EPDC_DATA14__GPIO2_IO14 0x59  /* CAN_STBY */
 +				MX7D_PAD_GPIO1_IO00__WDOD1_WDOG_B 0x74
 +			>;
 +		};
