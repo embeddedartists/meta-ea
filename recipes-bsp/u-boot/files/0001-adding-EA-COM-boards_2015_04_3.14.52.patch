@@ -5550,10 +5550,10 @@ index 0000000..35e4cd3
 +#endif
 diff --git a/board/embeddedartists/mx6sxea-com/mx6sxea-com.c b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
 new file mode 100644
-index 0000000..63f88e5
+index 0000000..c1b9c70
 --- /dev/null
 +++ b/board/embeddedartists/mx6sxea-com/mx6sxea-com.c
-@@ -0,0 +1,1297 @@
+@@ -0,0 +1,1295 @@
 +/*
 + * Copyright (C) 2014 Freescale Semiconductor, Inc.
 + *
@@ -6573,6 +6573,16 @@ index 0000000..63f88e5
 +	arch_auxiliary_core_up(0, CONFIG_SYS_AUXCORE_BOOTDATA);
 +#endif
 +
++	/* Enable PERI_3V3, which is used by SD2, ENET, LVDS, BT */
++	imx_iomux_v3_setup_multiple_pads(peri_3v3_pads, ARRAY_SIZE(peri_3v3_pads));
++	gpio_direction_output(IMX_GPIO_NR(4, 26) , 1);
++
++	/* Empty UART RX FIFO 5ms after PERI_PWR_ENABLE goes high */
++	udelay(5000);
++	while (tstc()) {
++		(void)getc();
++	}
++
 +	setup_iomux_uart();
 +
 +// Configuration parameters are stored in I2C mapped eeprom and
@@ -6603,18 +6613,6 @@ index 0000000..63f88e5
 +	 * as GPIO mux firstly here to workaround it.
 +	 */
 +	imx_iomux_v3_setup_pad(wdog_b_pad);
-+
-+	/* Enable PERI_3V3, which is used by SD2, ENET, LVDS, BT */
-+	imx_iomux_v3_setup_multiple_pads(peri_3v3_pads, ARRAY_SIZE(peri_3v3_pads));
-+
-+	/* Active high for ncp692 */
-+	gpio_direction_output(IMX_GPIO_NR(4, 26) , 1);
-+
-+	/* Empty UART RX FIFO 5ms after PERI_PWR_ENABLE goes high */
-+	udelay(5000);
-+	while (tstc()) {
-+		(void)getc();
-+	}
 +
 +#ifdef	CONFIG_FEC_MXC
 +	setup_fec(CONFIG_FEC_ENET_DEV);
