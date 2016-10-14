@@ -53,7 +53,7 @@ clean_up()
 #
 # Apply patches to recipes
 #
-patch -Np1 -r sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
+patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
 
 
 # get command line options
