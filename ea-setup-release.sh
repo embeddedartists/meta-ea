@@ -244,6 +244,8 @@ echo "   python-subprocess \\" >> $BUILD_DIR/conf/local.conf
 echo "   python-pyserial \\" >> $BUILD_DIR/conf/local.conf
 echo "   python-argparse \\" >> $BUILD_DIR/conf/local.conf
 echo "   python-pip \\" >> $BUILD_DIR/conf/local.conf
+echo "   gdbserver \\" >> $BUILD_DIR/conf/local.conf
+echo "   openssh-sftp-server \\" >> $BUILD_DIR/conf/local.conf
 echo "\"" >> $BUILD_DIR/conf/local.conf
 
 echo "" >> $BUILD_DIR/conf/local.conf
