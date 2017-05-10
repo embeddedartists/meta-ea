@@ -4,21 +4,23 @@ SUMMARY = "Produces a Manufacturing Tool compatible Linux Kernel"
 require recipes-kernel/linux/linux-imx.inc
 require recipes-kernel/linux/linux-dtb.inc
 
-DEFCONFIG_FILE := "${THISDIR}/${PN}-${PV}/defconfig"
 
 SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${SRCBRANCH}"
 
-LOCALVERSION = "-1.2.0"
-SRCBRANCH = "ea_imx_4.1.15_1.0.0"
-SRCREV = "8c4ba80bf5e1bcb681a3304dc0e440bf3e1f64ad"
+LOCALVERSION = "-2.0.3"
+SRCBRANCH = "ea_4.1.15_2.0.0"
+SRCREV = "4f0faf7e12f80e44772ab38746186e0010035757"
 DEPENDS += "lzop-native bc-native"
 
 COMPATIBLE_MACHINE = "(mx6|mx6ul|mx7)"
 
-do_configure_prepend() {
-    cp ${DEFCONFIG_FILE} ${B}/../defconfig
-    #echo "EA: In do_configure_prepend: ${DEFCONFIG_FILE}"
+addtask copy_defconfig after do_unpack before do_configure
+do_copy_defconfig () {
+    # copy latest ea_imx_mfg_defconfig to use
+    cp ${S}/arch/arm/configs/ea_imx_mfg_defconfig ${B}/.config
+    cp ${S}/arch/arm/configs/ea_imx_mfg_defconfig ${B}/../defconfig
 }
+
 
 require recipes-kernel/linux/linux-mfgtool.inc
 
