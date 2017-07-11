@@ -9,7 +9,7 @@ SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${
 
 LOCALVERSION = "-2.0.3"
 SRCBRANCH = "ea_4.1.15_2.0.0"
-SRCREV = "aebc76f951e76d71dbb7cd0d35b6acabdf813497"
+SRCREV = "e6b03eff703751e224f5071ead80d1cb4d0508fe"
 DEPENDS += "lzop-native bc-native"
 
 COMPATIBLE_MACHINE = "(mx6|mx6ul|mx7)"
