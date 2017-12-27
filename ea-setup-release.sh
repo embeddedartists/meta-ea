@@ -53,7 +53,8 @@ clean_up()
 #
 # Apply patches to recipes
 #
-#AR patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
+patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
+patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-bsp/recipes-connectivity/connman/connman_%.bbappend < sources/meta-ea/patches/0002-remove-connman-mask.patch
 
 
 # get command line options
@@ -268,6 +269,8 @@ echo "   python-argparse \\" >> $BUILD_DIR/conf/local.conf
 echo "   python-pip \\" >> $BUILD_DIR/conf/local.conf
 echo "   gdbserver \\" >> $BUILD_DIR/conf/local.conf
 echo "   openssh-sftp-server \\" >> $BUILD_DIR/conf/local.conf
+echo "   sqlite3 \\" >> $BUILD_DIR/conf/local.conf
+echo "   connman \\" >> $BUILD_DIR/conf/local.conf
 echo "\"" >> $BUILD_DIR/conf/local.conf
 
 echo "" >> $BUILD_DIR/conf/local.conf
