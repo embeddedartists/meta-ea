@@ -14,11 +14,13 @@ DEPENDS += "lzop-native bc-native"
 
 COMPATIBLE_MACHINE = "(mx6|mx6ul|mx7)"
 
+EAIMXMFG_DEFCONFIG ??= "ea_imx_mfg_defconfig"
+
 addtask copy_defconfig after do_unpack before do_preconfigure
 do_copy_defconfig () {
     # copy latest ea_imx_mfg_defconfig to use
-    cp ${S}/arch/arm/configs/ea_imx_mfg_defconfig ${B}/.config
-    cp ${S}/arch/arm/configs/ea_imx_mfg_defconfig ${B}/../defconfig
+    cp ${S}/arch/arm/configs/${EAIMXMFG_DEFCONFIG} ${B}/.config
+    cp ${S}/arch/arm/configs/${EAIMXMFG_DEFCONFIG} ${B}/../defconfig
 }
 
 
