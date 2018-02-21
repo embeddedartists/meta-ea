@@ -271,6 +271,9 @@ echo "   gdbserver \\" >> $BUILD_DIR/conf/local.conf
 echo "   openssh-sftp-server \\" >> $BUILD_DIR/conf/local.conf
 echo "   sqlite3 \\" >> $BUILD_DIR/conf/local.conf
 echo "   connman \\" >> $BUILD_DIR/conf/local.conf
+echo "   v4l-utils \\" >> $BUILD_DIR/conf/local.conf
+echo "   packagegroup-fsl-gstreamer1.0 \\" >> $BUILD_DIR/conf/local.conf
+echo "   packagegroup-fsl-gstreamer1.0-full \\" >> $BUILD_DIR/conf/local.conf
 echo "\"" >> $BUILD_DIR/conf/local.conf
 
 echo "" >> $BUILD_DIR/conf/local.conf
