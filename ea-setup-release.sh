@@ -250,6 +250,7 @@ echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.
 echo "#node.js" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-nodejs \"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-nodejs-contrib \"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
 
 echo "" >> $BUILD_DIR/conf/local.conf
 echo "IMAGE_INSTALL_append = \" \\" >> $BUILD_DIR/conf/local.conf
@@ -290,6 +291,12 @@ echo "  useradd -p '' tester; \\" >> $BUILD_DIR/conf/local.conf
 echo "  usermod -s /bin/sh tester; \\" >> $BUILD_DIR/conf/local.conf
 echo "  usermod -P 'pass' root \\" >> $BUILD_DIR/conf/local.conf
 echo "\"" >> $BUILD_DIR/conf/local.conf
+
+echo "" >> $BUILD_DIR/conf/local.conf
+echo "# For Murata modules: " >> $BUILD_DIR/conf/local.conf
+echo "# INTERNAL_MIRROR = \"http://localhost\"" >> $BUILD_DIR/conf/local.conf
+echo "CORE_IMAGE_EXTRA_INSTALL += \" hostap-conf hostap-utils hostapd murata-binaries backporttool-linux iperf3 iperf\"" >> $BUILD_DIR/conf/local.conf
+echo "" >> $BUILD_DIR/conf/local.conf
 
 
 cd  $BUILD_DIR
