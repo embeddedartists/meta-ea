@@ -294,7 +294,7 @@ echo "\"" >> $BUILD_DIR/conf/local.conf
 
 echo "" >> $BUILD_DIR/conf/local.conf
 echo "# For Murata modules: " >> $BUILD_DIR/conf/local.conf
-echo "# INTERNAL_MIRROR = \"http://localhost\"" >> $BUILD_DIR/conf/local.conf
+echo "INTERNAL_MIRROR = \"http://localhost\"" >> $BUILD_DIR/conf/local.conf
 echo "CORE_IMAGE_EXTRA_INSTALL += \" hostap-conf hostap-utils hostapd murata-binaries backporttool-linux iperf3 iperf\"" >> $BUILD_DIR/conf/local.conf
 echo "" >> $BUILD_DIR/conf/local.conf
 
