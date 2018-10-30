@@ -1,0 +1,15 @@
+diff --git a/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc b/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc
+index 6611aa9..263c295 100644
+--- a/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc
++++ b/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc
+@@ -67,7 +67,7 @@ IMX_DEFAULT_DISTRO_FEATURES += " systemd"
+ SOC_HAS_VIVANTE_KERNEL_DRIVER_SUPPORT_mx6 = "1"
+ SOC_HAS_VIVANTE_KERNEL_DRIVER_SUPPORT_mx7ulp = "1"
+ 
+-UBOOT_SUFFIX_mx6ul = "imx"
+-SPL_BINARY_mx6ul = ""
+-UBOOT_MAKE_TARGET_mx6ul = "u-boot.imx"
++#UBOOT_SUFFIX_mx6ul = "imx"
++#SPL_BINARY_mx6ul = ""
++#UBOOT_MAKE_TARGET_mx6ul = "u-boot.imx"
+ 
