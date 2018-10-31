@@ -2,7 +2,6 @@
 SUMMARY = "Produces a Manufacturing Tool compatible Linux Kernel"
 
 require recipes-kernel/linux/linux-imx.inc
-require recipes-kernel/linux/linux-dtb.inc
 
 
 SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${SRCBRANCH}"

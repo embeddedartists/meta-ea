@@ -6,13 +6,12 @@ DESCRIPTION = "Linux Kernel for Embedded Artists i.MX based COM boards. \
 The kernel is based on the kernel provided by NXP."
 
 require recipes-kernel/linux/linux-imx.inc
-require recipes-kernel/linux/linux-dtb.inc
 
 SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${SRCBRANCH}"
 
 LOCALVERSION = "-1.0.0"
 SRCBRANCH = "ea_4.9.123"
-SRCREV = "a5adb3a626e34d7060518321c01ddbf165ce218f"
+SRCREV = "a69ef935ac7af1ab0f0c9116452fa1d6b4ae56d4"
 DEPENDS += "lzop-native bc-native"
 
 
