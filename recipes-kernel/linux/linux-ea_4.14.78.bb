@@ -10,8 +10,8 @@ require recipes-kernel/linux/linux-imx.inc
 SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${SRCBRANCH}"
 
 LOCALVERSION = "-1.0.0"
-SRCBRANCH = "ea_4.9.123"
-SRCREV = "a69ef935ac7af1ab0f0c9116452fa1d6b4ae56d4"
+SRCBRANCH = "ea_4.14.78"
+SRCREV = "5fe6f743c59908d67c3ada5892574778f92d51f5"
 DEPENDS += "lzop-native bc-native"
 
 
