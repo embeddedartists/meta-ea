@@ -246,46 +246,15 @@ fi
 echo "#Embedded Artists Yocto layer" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.conf
 
-echo "" >> $BUILD_DIR/conf/local.conf
-echo "IMAGE_INSTALL_append = \" \\" >> $BUILD_DIR/conf/local.conf
-echo "   i2c-tools-misc \\" >> $BUILD_DIR/conf/local.conf
-echo "   i2c-tools \\" >> $BUILD_DIR/conf/local.conf
-echo "   pciutils \\" >> $BUILD_DIR/conf/local.conf
-echo "   can-utils \\" >> $BUILD_DIR/conf/local.conf
-echo "   iproute2 \\" >> $BUILD_DIR/conf/local.conf
-echo "   evtest \\" >> $BUILD_DIR/conf/local.conf
-echo "   alsa-utils \\" >> $BUILD_DIR/conf/local.conf
-echo "   fbida \\" >> $BUILD_DIR/conf/local.conf
-echo "   wget \\" >> $BUILD_DIR/conf/local.conf
-echo "   nano \\" >> $BUILD_DIR/conf/local.conf
-echo "   python-subprocess \\" >> $BUILD_DIR/conf/local.conf
-echo "   python-pyserial \\" >> $BUILD_DIR/conf/local.conf
-echo "   python-argparse \\" >> $BUILD_DIR/conf/local.conf
-echo "   python-pip \\" >> $BUILD_DIR/conf/local.conf
-echo "   gdbserver \\" >> $BUILD_DIR/conf/local.conf
-echo "   openssh-sftp-server \\" >> $BUILD_DIR/conf/local.conf
-echo "   sqlite3 \\" >> $BUILD_DIR/conf/local.conf
-echo "   connman \\" >> $BUILD_DIR/conf/local.conf
-echo "   v4l-utils \\" >> $BUILD_DIR/conf/local.conf
-echo "   packagegroup-fsl-gstreamer1.0 \\" >> $BUILD_DIR/conf/local.conf
-echo "   packagegroup-fsl-gstreamer1.0-full \\" >> $BUILD_DIR/conf/local.conf
-echo "\"" >> $BUILD_DIR/conf/local.conf
-
-echo "" >> $BUILD_DIR/conf/local.conf
-echo "EXTRA_IMAGE_FEATURES = \" ssh-server-openssh\"" >> $BUILD_DIR/conf/local.conf
-
-echo "" >> $BUILD_DIR/conf/local.conf
-echo "# User/Group modifications" >> $BUILD_DIR/conf/local.conf
-echo "# - Adding user 'tester' without password" >> $BUILD_DIR/conf/local.conf
-echo "# - Setting password for user 'root' to 'pass'" >> $BUILD_DIR/conf/local.conf
-echo "# - For more options see extrausers.bbclass" >> $BUILD_DIR/conf/local.conf
-echo "INHERIT += \" extrausers\"" >> $BUILD_DIR/conf/local.conf
-echo "EXTRA_USERS_PARAMS = \" \\" >> $BUILD_DIR/conf/local.conf
-echo "  useradd -p '' tester; \\" >> $BUILD_DIR/conf/local.conf
-echo "  usermod -s /bin/sh tester; \\" >> $BUILD_DIR/conf/local.conf
-echo "  usermod -P 'pass' root \\" >> $BUILD_DIR/conf/local.conf
-echo "\"" >> $BUILD_DIR/conf/local.conf
-
+echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+if [ -e ../sources/meta-murata-wireless/recipes-kernel/backporttool-linux/backporttool-linux_1.0.bb ]; then
+    rm ../sources/meta-murata-wireless/recipes-kernel/backporttool-linux/backporttool-linux_1.0.bb
+fi
+if [ ! -e ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_8.0.bbappend ]; then
+    if [ -e ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_7.5.bbappend ]; then
+        cp ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_7.5.bbappend ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_8.0.bbappend
+    fi
+fi
 
 cd  $BUILD_DIR
 clean_up
