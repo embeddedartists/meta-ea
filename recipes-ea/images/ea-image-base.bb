@@ -30,6 +30,11 @@ IMAGE_INSTALL = "\
    packagegroup-fsl-gstreamer1.0-full \
    murata-binaries \
    iperf3 \
+   tslib \
+   tslib-tests \
+   tslib-calibrate \
+   tslib-dev \
+   mtdev \
 "
 
 inherit core-image
