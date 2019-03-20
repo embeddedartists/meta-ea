@@ -26,8 +26,9 @@ addtask copy_defconfig after do_unpack before do_preconfigure
 do_copy_defconfig () {
     install -d ${B}
 
-    if [ ${DO_CONFIG_V7_COPY} = "yes" ]; then
+    if [ ${DO_CONFIG_EA_IMX_COPY} = "yes" ]; then
         # copy latest ea_imx_defconfig to use
+        mkdir -p ${B}
         cp ${S}/arch/arm/configs/ea_imx_defconfig ${B}/.config
         cp ${S}/arch/arm/configs/ea_imx_defconfig ${B}/../defconfig
     else
