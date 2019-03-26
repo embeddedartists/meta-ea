@@ -45,7 +45,7 @@ do_install () {
 	install -m 0644 ${WORKDIR}/wireless.network ${D}${sysconfdir}/systemd/network/wireless.network
 	install -m 0644 ${WORKDIR}/wpa_supplicant@wlan0.service ${D}${sysconfdir}/systemd/system/wpa_supplicant@wlan0.service
 	install -m 0755 ${WORKDIR}/autostart_network.sh ${D}/opt/ea/autostart_network.sh
-	install -m 0755 ${WORKDIR}/autostart_network.sh ${D}/opt/ea/optimize_for_iperf3.sh
+	install -m 0755 ${WORKDIR}/optimize_for_iperf3.sh ${D}/opt/ea/optimize_for_iperf3.sh
 	install -m 0644 ${WORKDIR}/telnetd.service ${D}${libdir}/systemd/system/telnetd.service
 
 	#
