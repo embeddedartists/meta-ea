@@ -35,6 +35,7 @@ IMAGE_INSTALL = "\
    tslib-calibrate \
    tslib-dev \
    mtdev \
+   ea-files \
 "
 
 inherit core-image

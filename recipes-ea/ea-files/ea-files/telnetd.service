@@ -1,0 +1,11 @@
+[Unit]
+Description=Busybox Telnet Server
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/bin/busybox telnetd -F
+
+[Install]
+WantedBy=multi-user.target
+
