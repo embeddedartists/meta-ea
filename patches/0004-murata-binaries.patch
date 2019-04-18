@@ -1,0 +1,44 @@
+diff --git a/recipes-connectivity/murata-binaries/murata-binaries_1.0.bb b/recipes-connectivity/murata-binaries/murata-binaries_1.0.bb
+index 4b7bf59..eee6e42 100644
+--- a/recipes-connectivity/murata-binaries/murata-binaries_1.0.bb
++++ b/recipes-connectivity/murata-binaries/murata-binaries_1.0.bb
+@@ -8,6 +8,7 @@ SRC_URI = " \
+ 	git://github.com/murata-wireless/cyw-fmac-nvram;protocol=http;branch=mothra;destsuffix=cyw-fmac-nvram \
+ 	git://github.com/murata-wireless/cyw-bt-patch;protocol=http;branch=rocko-mothra;destsuffix=cyw-bt-patch \
+ 	git://github.com/murata-wireless/cyw-fmac-utils-imx32;protocol=http;branch=mothra;destsuffix=cyw-fmac-utils-imx32 \
++	git://github.com/murata-wireless/cyw-fmac-utils-imx64;protocol=http;branch=mothra;destsuffix=cyw-fmac-utils-imx64 \
+ 	file://10-network.rules \
+ "
+ 
+@@ -15,6 +16,7 @@ SRCREV_cyw-fmac-fw="400d2128fbb3986cb36f20e6d479c1f13dd512f8"
+ SRCREV_cyw-fmac-nvram="5c31182a8b779ae88b589ddb15dd69d43dec29b3"
+ SRCREV_cyw-bt-patch="268df690598b42692c836ab6863d921f01e1ca38"
+ SRCREV_cyw-fmac-utils-imx32="95b79c0a2064e742f3605c3937d93f1c0a377587"
++SRCREV_cyw-fmac-utils-imx64="a9a053cb6ca8778739297f152dd194474f0068f7"
+ 
+ SRCREV_default = "${AUTOREV}"
+ 
+@@ -40,6 +42,10 @@ do_compile () {
+ PACKAGES_prepend = "murata-binaries-wlarm "
+ FILES_murata-binaries-wlarm = "${bindir}/wlarm"
+ 
++DO_INSTALL_64BIT_BINARIES = "no"
++DO_INSTALL_64BIT_BINARIES_mx6 = "no"
++DO_INSTALL_64BIT_BINARIES_mx7 = "no"
++DO_INSTALL_64BIT_BINARIES_mx8 = "yes"
+ 
+ do_install () {
+ 	echo "Installing: "
+@@ -97,7 +103,11 @@ do_install () {
+ 	install -m 444 ${S}/10-network.rules                  ${D}${sysconfdir}/udev/rules.d/10-network.rules
+ 
+ #       Copying wl tool binary to /usr/sbin
+-	install -m 755 ${S}/cyw-fmac-utils-imx32/wl ${D}/usr/sbin/wl
++	if [ ${DO_INSTALL_64BIT_BINARIES} = "yes" ]; then
++		install -m 755 ${S}/cyw-fmac-utils-imx64/wl ${D}/usr/sbin/wl
++	else
++		install -m 755 ${S}/cyw-fmac-utils-imx32/wl ${D}/usr/sbin/wl
++	fi
+ }
+ 
+ PACKAGES =+ "${PN}-mfgtest"

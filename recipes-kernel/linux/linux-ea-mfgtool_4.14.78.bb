@@ -1,9 +1,7 @@
 # Copyright (C) 2017 Embedded Artists AB
 # Released under the MIT license (see COPYING.MIT for the terms)
 
-SUMMARY = "Linux Kernel provided by Embedded Artists but based on NXP's kernel"
-DESCRIPTION = "Linux Kernel for Embedded Artists i.MX based COM boards. \
-The kernel is based on the kernel provided by NXP."
+SUMMARY = "Produces a Manufacturing Tool compatible Linux Kernel"
 
 require recipes-kernel/linux/linux-imx.inc
 
@@ -29,8 +27,8 @@ do_copy_defconfig () {
     if [ ${DO_CONFIG_EA_IMX_COPY} = "yes" ]; then
         # copy latest ea_imx_defconfig to use
         mkdir -p ${B}
-        cp ${S}/arch/arm/configs/ea_imx_defconfig ${B}/.config
-        cp ${S}/arch/arm/configs/ea_imx_defconfig ${B}/../defconfig
+        cp ${S}/arch/arm/configs/ea_imx_mfg_defconfig ${B}/.config
+        cp ${S}/arch/arm/configs/ea_imx_mfg_defconfig ${B}/../defconfig
     else
         # copy latest defconfig to use for mx8
         mkdir -p ${B}
@@ -41,3 +39,13 @@ do_copy_defconfig () {
 
 COMPATIBLE_MACHINE = "(mx6|mx7|mx8)"
 
+require recipes-kernel/linux/linux-mfgtool.inc
+
+do_deploy () {
+    install -d ${DEPLOY_DIR_IMAGE}
+    if [ ${DO_CONFIG_EA_IMX_COPY} = "yes" ]; then
+	    install  arch/arm/boot/zImage ${DEPLOY_DIR_IMAGE}/zImage_mfgtool
+    else
+	    install  arch/arm64/boot/Image ${DEPLOY_DIR_IMAGE}/Image_mfgtool
+    fi
+}
