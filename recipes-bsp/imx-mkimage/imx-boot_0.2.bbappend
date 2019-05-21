@@ -8,4 +8,7 @@ do_compile_prepend() {
         if [ -f ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mq-ea-com-kit_v2.dtb ]; then
           cp ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mq-ea-com-kit_v2.dtb ${S}/iMX8M/fsl-imx8mq-evk.dtb
         fi
+        if [ -f ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mm-ea-com-kit_v2.dtb ]; then
+	  cp ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mm-ea-com-kit_v2.dtb ${S}/iMX8M/fsl-imx8mm-evk.dtb
+        fi
 }

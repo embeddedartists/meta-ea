@@ -11,7 +11,7 @@ SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${
 
 LOCALVERSION = "-1.0.0"
 SRCBRANCH = "ea_4.14.78"
-SRCREV = "87ab26fffb48d89fcff598f094202be7efdbde1b"
+SRCREV = "0167723b71be8f5ae6edd8412960135346aefa73"
 DEPENDS += "lzop-native bc-native"
 
 
