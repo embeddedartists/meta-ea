@@ -14,6 +14,7 @@ SRCBRANCH = "ea_4.14.78"
 SRCREV = "0167723b71be8f5ae6edd8412960135346aefa73"
 DEPENDS += "lzop-native bc-native"
 
+SRC_URI += "file://0001-uapi-Add-ion.h-to-userspace.patch"
 
 DEFAULT_PREFERENCE = "1"
 
@@ -40,4 +41,8 @@ do_copy_defconfig () {
 }
 
 COMPATIBLE_MACHINE = "(mx6|mx7|mx8)"
+
+EXTRA_OEMAKE_append_mx6 = " ARCH=arm"
+EXTRA_OEMAKE_append_mx7 = " ARCH=arm"
+EXTRA_OEMAKE_append_mx8 = " ARCH=arm64"
 
