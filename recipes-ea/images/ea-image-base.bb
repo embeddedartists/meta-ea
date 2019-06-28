@@ -36,6 +36,7 @@ IMAGE_INSTALL = "\
    tslib-dev \
    mtdev \
    ea-files \
+   mmc-utils \
 "
 
 inherit core-image
