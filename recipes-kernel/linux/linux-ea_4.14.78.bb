@@ -11,7 +11,7 @@ SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${
 
 LOCALVERSION = "-1.0.0"
 SRCBRANCH = "ea_4.14.78"
-SRCREV = "e8a22dc01725a19348808094fbbccf27853251f2"
+SRCREV = "3bc5db3d76f045f6e195f50828bf985397903d78"
 DEPENDS += "lzop-native bc-native"
 
 SRC_URI += "file://0001-uapi-Add-ion.h-to-userspace.patch"
