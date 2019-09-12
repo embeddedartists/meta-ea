@@ -38,6 +38,7 @@ IMAGE_INSTALL = "\
    ea-files \
    mmc-utils \
    hostapd \
+   memtester \
 "
 
 inherit core-image
