@@ -11,7 +11,7 @@ LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a
 SRCBRANCH = "ea_v2018.03"
 SRC_URI = "git://github.com/embeddedartists/uboot-imx.git;branch=${SRCBRANCH} \
            "
-SRCREV = "60f078c6d4b96cf605798c466b76d29a00c23ed4"
+SRCREV = "1a4aedf5debfddeaa2a43d5798c489642b6ce918"
 
 S = "${WORKDIR}/git"
 
