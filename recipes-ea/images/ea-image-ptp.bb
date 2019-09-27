@@ -1,0 +1,26 @@
+DESCRIPTION = "Small image to be used for Production Tests."
+
+LICENSE = "MIT"
+
+MACHINEOVERRIDES =. "ea-ptp:"
+
+IMAGE_INSTALL = "\
+   ${CORE_IMAGE_BASE_INSTALL} \
+   iperf3 \
+   i2c-tools-misc \
+   i2c-tools \
+   pciutils \
+   can-utils \
+   iproute2 \
+   evtest \
+   alsa-utils \
+   fbida \
+   wget \
+   ethtool \
+   python-subprocess \
+   python-pyserial \
+   python-argparse \
+   devregs \
+"
+
+inherit mfgtool-initramfs-image
