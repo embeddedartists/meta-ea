@@ -23,4 +23,7 @@ IMAGE_INSTALL = "\
    devregs \
 "
 
+IMAGE_INSTALL_append_imx7ulpea-ucom = " murata-binaries bluez5"
+IMAGE_INSTALL_append_imx8mmea-ucom = " murata-binaries bluez5"
+
 inherit mfgtool-initramfs-image
