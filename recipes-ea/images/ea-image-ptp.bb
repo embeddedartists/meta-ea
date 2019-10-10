@@ -24,6 +24,7 @@ IMAGE_INSTALL = "\
 "
 
 IMAGE_INSTALL_append_imx7ulpea-ucom = " murata-binaries bluez5"
-IMAGE_INSTALL_append_imx8mmea-ucom = " murata-binaries bluez5"
+IMAGE_INSTALL_append_imx8mmea-ucom = " murata-binaries bluez5 firmware-imx-sdma imx-boot"
+IMAGE_INSTALL_append_imx8mqea-com = " imx-boot"
 
 inherit mfgtool-initramfs-image
