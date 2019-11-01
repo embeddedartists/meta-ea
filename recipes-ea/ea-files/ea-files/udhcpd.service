@@ -1,0 +1,11 @@
+[Unit]
+Description=DHCP Server
+After=network.target hostapd.service
+
+[Service]
+ExecStart=/usr/sbin/udhcpd -f -S /etc/udhcpd.conf
+ExecStartPre=/opt/ea/start_wifi_for_hostap.sh
+
+[Install]
+WantedBy=multi-user.target
+

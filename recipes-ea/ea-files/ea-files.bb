@@ -7,9 +7,12 @@ LIC_FILES_CHKSUM="file://LICENSE;md5=0835ade698e0bcf8506ecda2f7b4f302"
 SRC_URI = "file://wired.network \
            file://wireless.network \
            file://wpa_supplicant@wlan0.service \
+           file://autostart_hostapd.sh \
            file://autostart_network.sh \
            file://optimize_for_iperf3.sh \
+           file://start_wifi_for_hostap.sh \
            file://telnetd.service \
+           file://udhcpd.service \
            file://LICENSE \
            "
 
@@ -44,9 +47,12 @@ do_install () {
 	install -m 0644 ${WORKDIR}/wired.network ${D}${sysconfdir}/systemd/network/wired.network
 	install -m 0644 ${WORKDIR}/wireless.network ${D}${sysconfdir}/systemd/network/wireless.network
 	install -m 0644 ${WORKDIR}/wpa_supplicant@wlan0.service ${D}${sysconfdir}/systemd/system/wpa_supplicant@wlan0.service
+	install -m 0755 ${WORKDIR}/autostart_hostapd.sh ${D}/opt/ea/autostart_hostapd.sh
 	install -m 0755 ${WORKDIR}/autostart_network.sh ${D}/opt/ea/autostart_network.sh
 	install -m 0755 ${WORKDIR}/optimize_for_iperf3.sh ${D}/opt/ea/optimize_for_iperf3.sh
+	install -m 0755 ${WORKDIR}/start_wifi_for_hostap.sh ${D}/opt/ea/start_wifi_for_hostap.sh
 	install -m 0644 ${WORKDIR}/telnetd.service ${D}${libdir}/systemd/system/telnetd.service
+	install -m 0644 ${WORKDIR}/udhcpd.service ${D}${libdir}/systemd/system/udhcpd.service
 
 	#
 	# Process a declaration like this in local.conf:

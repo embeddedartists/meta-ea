@@ -59,6 +59,7 @@ patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fs
 patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-bsp/recipes-connectivity/connman/connman_%.bbappend < sources/meta-ea/patches/0002-remove-connman-mask.patch
 patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0003-remove-fsl-preferred-uboot_mx6ul.patch
 patch -Np1 -r - sources/meta-murata-wireless/recipes-connectivity/murata-binaries/murata-binaries_1.0.bb < sources/meta-ea/patches/0004-murata-binaries.patch
+patch -Np1 -r - sources/meta-murata-wireless/recipes-connectivity/hostapd/hostapd/hostapd.service < sources/meta-ea/patches/0005-murata-hostapd.patch
 
 # get command line options
 OLD_OPTIND=$OPTIND

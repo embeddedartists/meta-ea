@@ -1,0 +1,10 @@
+diff --git a/recipes-connectivity/hostapd/hostapd/hostapd.service b/recipes-connectivity/hostapd/hostapd/hostapd.service
+index b741345..151c050 100644
+--- a/recipes-connectivity/hostapd/hostapd/hostapd.service
++++ b/recipes-connectivity/hostapd/hostapd/hostapd.service
+@@ -1,4 +1,4 @@
+-Unit]
++[Unit]
+ Description=Hostapd IEEE 802.11 AP, IEEE 802.1X/WPA/WPA2/EAP/RADIUS Authenticator
+ After=network.target
+ 
