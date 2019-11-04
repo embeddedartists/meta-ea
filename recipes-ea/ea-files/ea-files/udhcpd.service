@@ -5,6 +5,8 @@ After=network.target hostapd.service
 [Service]
 ExecStart=/usr/sbin/udhcpd -f -S /etc/udhcpd.conf
 ExecStartPre=/opt/ea/start_wifi_for_hostap.sh
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s QUIT $MAINPID
 
 [Install]
 WantedBy=multi-user.target
