@@ -4,7 +4,7 @@ require recipes-bsp/u-boot/u-boot-mfgtool.inc
 SRCBRANCH = "ea_v2018.03"
 SRC_URI = "git://github.com/embeddedartists/uboot-imx.git;branch=${SRCBRANCH} \
            "
-SRCREV = "22dce3695319df702876e58ff8627fbb54440009"
+SRCREV = "710e2ca1ba41e5cd8840718d7553bf88f65c5aab"
 
 #
 # Temporary fix. This is the last commit that the u-boot/spl can be used
