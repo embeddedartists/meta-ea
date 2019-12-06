@@ -4,10 +4,5 @@ require recipes-bsp/u-boot/u-boot-mfgtool.inc
 SRCBRANCH = "ea_v2018.03"
 SRC_URI = "git://github.com/embeddedartists/uboot-imx.git;branch=${SRCBRANCH} \
            "
-SRCREV = "710e2ca1ba41e5cd8840718d7553bf88f65c5aab"
+SRCREV = "e47dfd897b396c7fe2fe4e3aa165abf7242041fc"
 
-#
-# Temporary fix. This is the last commit that the u-boot/spl can be used
-# together with uuu to flash the target.
-#
-SRCREV_mx6ul = "261964dcf87373cf547f385cfb1a627ebcfe16ca"
