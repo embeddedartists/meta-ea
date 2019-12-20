@@ -39,6 +39,7 @@ IMAGE_INSTALL = "\
    mmc-utils \
    hostapd \
    memtester \
+   u-boot-script-ea \
 "
 
 inherit core-image
