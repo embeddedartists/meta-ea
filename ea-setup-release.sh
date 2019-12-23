@@ -58,8 +58,8 @@ clean_up()
 patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
 patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-bsp/recipes-connectivity/connman/connman_%.bbappend < sources/meta-ea/patches/0002-remove-connman-mask.patch
 patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0003-remove-fsl-preferred-uboot_mx6ul.patch
-patch -Np1 -r - sources/meta-murata-wireless/recipes-connectivity/murata-binaries/murata-binaries_1.0.bb < sources/meta-ea/patches/0004-murata-binaries.patch
-patch -Np1 -r - sources/meta-murata-wireless/recipes-connectivity/hostapd/hostapd/hostapd.service < sources/meta-ea/patches/0005-murata-hostapd.patch
+#patch -Np1 -r - sources/meta-murata-wireless/recipes-connectivity/murata-binaries/murata-binaries_1.0.bb < sources/meta-ea/patches/0004-murata-binaries.patch
+#patch -Np1 -r - sources/meta-murata-wireless/recipes-connectivity/hostapd/hostapd/hostapd.service < sources/meta-ea/patches/0005-murata-hostapd.patch
 
 # get command line options
 OLD_OPTIND=$OPTIND
@@ -190,15 +190,15 @@ fi
 echo "#Embedded Artists Yocto layer" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.conf
 
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
-if [ -e ../sources/meta-murata-wireless/recipes-kernel/backporttool-linux/backporttool-linux_1.0.bb ]; then
-    rm ../sources/meta-murata-wireless/recipes-kernel/backporttool-linux/backporttool-linux_1.0.bb
-fi
-if [ ! -e ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_8.0.bbappend ]; then
-    if [ -e ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_7.5.bbappend ]; then
-        cp ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_7.5.bbappend ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_8.0.bbappend
-    fi
-fi
+#echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+#if [ -e ../sources/meta-murata-wireless/recipes-kernel/backporttool-linux/backporttool-linux_1.0.bb ]; then
+#    rm ../sources/meta-murata-wireless/recipes-kernel/backporttool-linux/backporttool-linux_1.0.bb
+#fi
+#if [ ! -e ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_8.%.bbappend ]; then
+#    if [ -e ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_7.5.bbappend ]; then
+#        cp ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_7.5.bbappend ../sources/meta-murata-wireless/recipes-kernel/firmware-imx/firmware-imx_8.%.bbappend
+#    fi
+#fi
 
 cd  $BUILD_DIR
 clean_up
