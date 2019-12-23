@@ -39,7 +39,6 @@ IMAGE_INSTALL = "\
    hostapd \
    memtester \
 "
-#   murata-binaries \
 
 
 inherit core-image
