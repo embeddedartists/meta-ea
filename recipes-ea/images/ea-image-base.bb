@@ -28,6 +28,7 @@ IMAGE_INSTALL = "\
    v4l-utils \
    packagegroup-fsl-gstreamer1.0 \
    packagegroup-fsl-gstreamer1.0-full \
+   murata-binaries \
    iperf3 \
    tslib \
    tslib-tests \
@@ -36,6 +37,8 @@ IMAGE_INSTALL = "\
    mtdev \
    ea-files \
    mmc-utils \
+   hostap-conf \
+   hostap-utils \
    hostapd \
    memtester \
 "
