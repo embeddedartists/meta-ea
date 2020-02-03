@@ -5,10 +5,13 @@ do_compile_prepend() {
 	echo "Copying DTB"
 	echo ${DEPLOY_DIR_IMAGE}
 	echo ${BOOT_TOOLS}
-        if [ -f ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mq-ea-com-kit_v2.dtb ]; then
-          cp ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mq-ea-com-kit_v2.dtb ${S}/iMX8M/fsl-imx8mq-evk.dtb
-        fi
-        if [ -f ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mm-ea-ucom-kit_v2.dtb ]; then
+	if [ -f ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mq-ea-com-kit_v2.dtb ]; then
+	  cp ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mq-ea-com-kit_v2.dtb ${S}/iMX8M/fsl-imx8mq-evk.dtb
+	fi
+	if [ -f ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mm-ea-ucom-kit_v2.dtb ]; then
 	  cp ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mm-ea-ucom-kit_v2.dtb ${S}/iMX8M/fsl-imx8mm-evk.dtb
-        fi
+	fi
+	if [ -f ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mn-ea-ucom-kit_v2.dtb ]; then
+	  cp ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/fsl-imx8mn-ea-ucom-kit_v2.dtb ${S}/iMX8M/fsl-imx8mn-ddr4-evk.dtb
+	fi
 }

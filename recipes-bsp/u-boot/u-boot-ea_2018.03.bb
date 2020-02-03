@@ -11,13 +11,13 @@ LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a
 SRCBRANCH = "ea_v2018.03"
 SRC_URI = "git://github.com/embeddedartists/uboot-imx.git;branch=${SRCBRANCH} \
            "
-SRCREV = "e3384eaeab7d39eaef16d53aa03457c97438028d"
+SRCREV = "90d9b9fa1da905a6bb9248d5960ed8bf0f11b666"
 
 S = "${WORKDIR}/git"
 
 inherit fsl-u-boot-localversion
 
-LOCALVERSION ?= "-1.0.0"
+LOCALVERSION ?= "-2.0.0"
 
 BOOT_TOOLS = "imx-boot-tools"
 
