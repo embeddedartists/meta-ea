@@ -41,6 +41,7 @@ IMAGE_INSTALL = "\
    hostap-utils \
    hostapd \
    memtester \
+   screen \
 "
 
 

@@ -4,4 +4,4 @@ require recipes-kernel/linux/linux-mfgtool.inc
 SRCBRANCH = "ea_4.14.98"
 SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${SRCBRANCH}"
 
-SRCREV = "b1e8a1665819ff8027149f44f06275edfec4c885"
+SRCREV = "53554cb0c50daf99fb5358cd27f002dba21713c2"
