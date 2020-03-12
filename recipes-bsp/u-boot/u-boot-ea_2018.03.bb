@@ -1,23 +1,9 @@
 # Copyright (C) 2017 Embedded Artists
 
-DESCRIPTION = "U-Boot for Embedded Artists i.MX based boards."
 require recipes-bsp/u-boot/u-boot.inc
+require recipes-bsp/u-boot/u-boot-ea-common_${PV}.inc
 
 PROVIDES += "u-boot"
-
-LICENSE = "GPLv2+"
-LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a4263"
-
-SRCBRANCH = "ea_v2018.03"
-SRC_URI = "git://github.com/embeddedartists/uboot-imx.git;branch=${SRCBRANCH} \
-           "
-SRCREV = "b42a9e3450c65f339e0ddcd073f8045b344c0160"
-
-S = "${WORKDIR}/git"
-
-inherit fsl-u-boot-localversion
-
-LOCALVERSION ?= "-2.0.0"
 
 BOOT_TOOLS = "imx-boot-tools"
 
@@ -44,8 +30,6 @@ do_deploy_append_mx8m () {
 
 }
 
-
-PACKAGE_ARCH = "${MACHINE_ARCH}"
 COMPATIBLE_MACHINE = "(mx6|mx7|mx8)"
 
 UBOOT_NAME_mx6 = "u-boot-${MACHINE}.bin-${UBOOT_CONFIG}"

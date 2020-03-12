@@ -42,6 +42,8 @@ IMAGE_INSTALL = "\
    hostapd \
    memtester \
    screen \
+   u-boot-fw-utils \
+   u-boot-script-ea \
 "
 
 
