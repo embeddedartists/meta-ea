@@ -1,14 +1,10 @@
 require u-boot-ea-common_${PV}.inc
 DEPENDS = "u-boot-mkimage-native"
 
-PV = "1.0"
-
 SRC_URI += " \
     file://bootscript.txt \
     file://bootscript_imx8.txt \
 "
-
-S = "${WORKDIR}"
 
 BOOTSCRIPT = "${WORKDIR}/bootscript.txt"
 BOOTSCRIPT_mx8 = "${WORKDIR}/bootscript_imx8.txt"
