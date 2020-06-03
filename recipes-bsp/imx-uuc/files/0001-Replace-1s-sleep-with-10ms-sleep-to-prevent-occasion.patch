@@ -1,0 +1,26 @@
+From 0017046b0d033cf6f3665f93ec2ef2f58a82166d Mon Sep 17 00:00:00 2001
+From: Anders Lindvall <anders.lindvall@embeddedartists.com>
+Date: Thu, 28 May 2020 14:00:06 +0000
+Subject: [PATCH] Replace 1s sleep with 10ms sleep to prevent occasional
+ deadlock on imx8mn
+
+---
+ linuxrc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/linuxrc b/linuxrc
+index 54bb8a2..a578f83 100755
+--- a/linuxrc
++++ b/linuxrc
+@@ -137,7 +137,7 @@ function launch_uuc() {
+ 		while [ ! -e /dev/usb-utp$2/ep1 ]
+ 		do
+ 			echo "."
+-			sleep 1;
++			usleep 10000;
+ 		done
+ 
+ 		echo $1 > UDC
+-- 
+2.17.1
+
