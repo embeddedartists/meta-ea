@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-. sources/meta-fsl-bsp-release/imx/tools/setup-utils.sh
+. sources/meta-imx/tools/setup-utils.sh
 
 CWD=`pwd`
 PROGNAME="setup-environment"
@@ -32,7 +32,7 @@ exit_message ()
 
 usage()
 {
-    echo -e "\nUsage: source ea-setup-release.sh
+    echo -e "\nUsage: source imx-setup-release.sh
     Optional parameters: [-b build-dir] [-h]"
 echo "
     * [-b build-dir]: Build directory, if unspecified script uses 'build' as output directory
@@ -55,9 +55,7 @@ clean_up()
 #
 # Apply patches to recipes
 #
-patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
-patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-bsp/recipes-connectivity/connman/connman_%.bbappend < sources/meta-ea/patches/0002-remove-connman-mask.patch
-patch -Np1 -r - sources/meta-fsl-bsp-release/imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0003-remove-fsl-preferred-uboot_mx6ul.patch
+patch -Np1 -r - sources/meta-imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
 
 # get command line options
 OLD_OPTIND=$OPTIND
@@ -102,7 +100,7 @@ fi
 
 if [ -z "$MACHINE" ]; then
     echo setting to default machine
-    MACHINE='imx6sxea-com'
+    MACHINE='imx6qpsabresd'
 fi
 
 case $MACHINE in
@@ -123,8 +121,20 @@ imx8*)
     ;;
 esac
 
-# copy new EULA into community so setup uses latest i.MX EULA
-cp sources/meta-fsl-bsp-release/imx/EULA.txt sources/meta-freescale/EULA
+# Cleanup previous meta-freescale/EULA overrides
+cd $CWD/sources/meta-freescale
+if [ -h EULA ]; then
+    echo Cleanup meta-freescale/EULA...
+    git checkout -- EULA
+fi
+if [ ! -f classes/fsl-eula-unpack.bbclass ]; then
+    echo Cleanup meta-freescale/classes/fsl-eula-unpack.bbclass...
+    git checkout -- classes/fsl-eula-unpack.bbclass
+fi
+cd -
+
+# Override the click-through in meta-freescale/EULA
+FSL_EULA_FILE=$CWD/sources/meta-imx/EULA.txt
 
 # Set up the basic yocto environment
 if [ -z "$DISTRO" ]; then
@@ -150,6 +160,10 @@ else
     cp $BUILD_DIR/conf/local.conf.org $BUILD_DIR/conf/local.conf
 fi
 
+echo >> conf/local.conf
+echo "# Switch to Debian packaging and include package-management in the image" >> conf/local.conf
+echo "PACKAGE_CLASSES = \"package_deb\"" >> conf/local.conf
+echo "EXTRA_IMAGE_FEATURES += \"package-management\"" >> conf/local.conf
 
 if [ ! -e $BUILD_DIR/conf/bblayers.conf.org ]; then
     cp $BUILD_DIR/conf/bblayers.conf $BUILD_DIR/conf/bblayers.conf.org
@@ -158,21 +172,31 @@ else
 fi
 
 
-META_FSL_BSP_RELEASE="${CWD}/sources/meta-fsl-bsp-release/imx/meta-bsp"
+META_FSL_BSP_RELEASE="${CWD}/sources/meta-imx/meta-bsp"
 
 echo "" >> $BUILD_DIR/conf/bblayers.conf
 echo "# i.MX Yocto Project Release layers" >> $BUILD_DIR/conf/bblayers.conf
-hook_in_layer meta-fsl-bsp-release/imx/meta-bsp meta-freescale meta-ea
-hook_in_layer meta-fsl-bsp-release/imx/meta-sdk meta-freescale meta-ea
+hook_in_layer meta-imx/meta-bsp
+hook_in_layer meta-imx/meta-sdk
+hook_in_layer meta-imx/meta-ml
 
 echo "" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-browser \"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-gnome \"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-networking \"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-python \"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-openembedded/meta-filesystems \"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-browser\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-rust\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-gnome\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-networking\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-filesystems\"" >> $BUILD_DIR/conf/bblayers.conf
 
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-qt5 \"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-qt5\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-python2\"" >> $BUILD_DIR/conf/bblayers.conf
+
+if [ -d ../sources/meta-ivi ]; then
+    echo -e "\n## Genivi layers" >> $BUILD_DIR/conf/bblayers.conf
+    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-gplv2\"" >> $BUILD_DIR/conf/bblayers.conf
+    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-ivi/meta-ivi\"" >> $BUILD_DIR/conf/bblayers.conf
+    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-ivi/meta-ivi-bsp\"" >> $BUILD_DIR/conf/bblayers.conf
+    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-ivi/meta-ivi-test\"" >> $BUILD_DIR/conf/bblayers.conf
+fi
 
 echo BSPDIR=$BSPDIR
 echo BUILD_DIR=$BUILD_DIR
@@ -188,7 +212,7 @@ fi
 echo "#Embedded Artists Yocto layer" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.conf
 
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+#echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
 
 cd  $BUILD_DIR
 clean_up
