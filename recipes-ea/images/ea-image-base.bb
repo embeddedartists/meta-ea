@@ -40,6 +40,7 @@ IMAGE_INSTALL = "\
    screen \
    u-boot-fw-utils \
    u-boot-script-ea \
+   ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston-init', '', d)} \
 "
 
 #   murata-binaries
