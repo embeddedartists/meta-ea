@@ -1,7 +1,7 @@
 SUMMARY = "A console-only image that fully supports the target device \
 hardware."
 
-IMAGE_FEATURES += "splash"
+IMAGE_FEATURES += "splash ssh-server-openssh"
 
 LICENSE = "MIT"
 
@@ -61,8 +61,6 @@ IMAGE_INSTALL = "\
 
 
 inherit core-image
-
-EXTRA_IMAGE_FEATURES = " ssh-server-openssh"
 
 # User/Group modifications"
 # - Adding user 'tester' without password"
