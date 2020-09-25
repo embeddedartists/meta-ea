@@ -57,6 +57,7 @@ IMAGE_INSTALL = "\
    u-boot-fw-utils \
    u-boot-script-ea \
    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston-init', '', d)} \
+   ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston-examples', '', d)} \
 "
 
 
