@@ -4,15 +4,16 @@ SECTION = "base"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM="file://LICENSE;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRC_URI = "file://wired.network \
-           file://wireless.network \
+SRC_URI = "file://10-wired.network \
+           file://20-wireless-wlan0.network \
+           file://25-wireless-mlan0.network \
+           file://wpa_supplicant@mlan0.service \
            file://wpa_supplicant@wlan0.service \
            file://autostart_hostapd.sh \
-           file://autostart_network.sh \
            file://optimize_for_iperf3.sh \
-           file://start_wifi_for_hostap.sh \
            file://telnetd.service \
            file://udhcpd.service \
+           file://bluetooth_up.sh \
            file://LICENSE \
            "
 
@@ -24,8 +25,7 @@ EA_FILES_DIRS ?= ""
 
 do_install () {
 	install -m 0755 -d ${D}${sysconfdir}/systemd/network
-	install -m 0755 -d ${D}${sysconfdir}/systemd/system
-	install -m 0755 -d ${D}${libdir}/systemd/system
+	install -m 0755 -d ${D}${systemd_system_unitdir}
 	install -m 0755 -d ${D}/opt
 	install -m 0755 -d ${D}/opt/ea
 
@@ -44,15 +44,16 @@ do_install () {
 		install -m 0755 -d ${D}${d}
 	done
 
-	install -m 0644 ${WORKDIR}/wired.network ${D}${sysconfdir}/systemd/network/wired.network
-	install -m 0644 ${WORKDIR}/wireless.network ${D}${sysconfdir}/systemd/network/wireless.network
-	install -m 0644 ${WORKDIR}/wpa_supplicant@wlan0.service ${D}${sysconfdir}/systemd/system/wpa_supplicant@wlan0.service
-	install -m 0755 ${WORKDIR}/autostart_hostapd.sh ${D}/opt/ea/autostart_hostapd.sh
-	install -m 0755 ${WORKDIR}/autostart_network.sh ${D}/opt/ea/autostart_network.sh
-	install -m 0755 ${WORKDIR}/optimize_for_iperf3.sh ${D}/opt/ea/optimize_for_iperf3.sh
-	install -m 0755 ${WORKDIR}/start_wifi_for_hostap.sh ${D}/opt/ea/start_wifi_for_hostap.sh
-	install -m 0644 ${WORKDIR}/telnetd.service ${D}${libdir}/systemd/system/telnetd.service
-	install -m 0644 ${WORKDIR}/udhcpd.service ${D}${libdir}/systemd/system/udhcpd.service
+	install -m 0644 ${WORKDIR}/10-wired.network ${D}${sysconfdir}/systemd/network/
+	install -m 0644 ${WORKDIR}/20-wireless-wlan0.network ${D}${sysconfdir}/systemd/network/
+	install -m 0644 ${WORKDIR}/25-wireless-mlan0.network ${D}${sysconfdir}/systemd/network/
+	install -m 0644 ${WORKDIR}/wpa_supplicant@mlan0.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${WORKDIR}/wpa_supplicant@wlan0.service ${D}${systemd_system_unitdir}
+	install -m 0755 ${WORKDIR}/autostart_hostapd.sh ${D}/opt/ea/
+	install -m 0755 ${WORKDIR}/bluetooth_up.sh ${D}/opt/ea/
+	install -m 0755 ${WORKDIR}/optimize_for_iperf3.sh ${D}/opt/ea/
+	install -m 0644 ${WORKDIR}/telnetd.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${WORKDIR}/udhcpd.service ${D}${systemd_system_unitdir}
 
 	#
 	# Process a declaration like this in local.conf:

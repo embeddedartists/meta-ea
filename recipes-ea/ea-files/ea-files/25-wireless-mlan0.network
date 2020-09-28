@@ -1,8 +1,8 @@
 [Match]
-Name=wlan0
+Name=mlan0
 
 [Network]
-DHCP=both
+DHCP=yes
 
 [DHCP]
 RouteMetric=20

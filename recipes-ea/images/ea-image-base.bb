@@ -24,7 +24,6 @@ IMAGE_INSTALL = "\
    gdbserver \
    openssh-sftp-server \
    sqlite3 \
-   connman \
    v4l-utils \
    packagegroup-fsl-gstreamer1.0 \
    packagegroup-fsl-gstreamer1.0-full \
