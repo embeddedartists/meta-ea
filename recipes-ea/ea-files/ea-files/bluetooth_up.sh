@@ -46,10 +46,20 @@ if [[ $# -ne 0 ]]; then
 fi
 
 btuart=$(get_uart)
-module=1mw
+module=$(fw_printenv bt_hint)
+success=$?
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "You must run the switch_module.sh script and then reboot"
+  echo "before running this script to setup required variables"
+  echo ""
+  usage
+  exit 1
+fi
+module=${module/bt_hint=/}
 
 case $module in
-  1mw|1MW|1dx|1DX|1lv|1LV|1cx|1CX|cyw-sdio|CYW-SDIO|cyw-pcie|CYW-PCIE)
+  cypress)
     hciattach $btuart bcm43xx 3000000 flow
     hciconfig hci0 up
     hciconfig hci0 piscan
@@ -58,7 +68,7 @@ case $module in
     echo "To run a scan again, use hcitool scan"
     echo ""
     ;;
-  1zm|1ZM|1ym|1YM)
+  nxp|nxp_1ym_pcie)
     hciattach $btuart any 115200 flow
     hciconfig hci0 up
     hcitool -i hci0 cmd 0x3f 0x0009 0xc0 0xc6 0x2d 0x00
@@ -67,6 +77,15 @@ case $module in
     hciconfig hci0 up
     hciconfig hci0 piscan
     hciconfig hci0 noencrypt
+    hcitool scan
+    echo ""
+    echo "To run a scan again, use hcitool scan"
+    echo ""
+    ;;
+  nxp_1ym_sdio)
+    insmod /usr/share/nxp_wireless/bin_sd8997_bt/bt8997.ko
+    hciconfig hci0 up
+    hcitool -i hci0 cmd 3f ee 01 XX
     hcitool scan
     echo ""
     echo "To run a scan again, use hcitool scan"
