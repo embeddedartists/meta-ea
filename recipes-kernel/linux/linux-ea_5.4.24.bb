@@ -13,7 +13,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
 LOCALVERSION = "-2.1.0"
 SRCBRANCH = "ea_5.4.24"
-SRCREV = "259e2e9ec871a1c11bc4455bd26d1713a1c02d6f"
+SRCREV = "923952ee234e893ec847e9459c163e6bdd334d55"
 DEPENDS += "lzop-native bc-native"
 
 SRC_URI += "file://0001-uapi-Add-ion.h-to-userspace.patch"
