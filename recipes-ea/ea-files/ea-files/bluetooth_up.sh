@@ -7,7 +7,7 @@ function usage() {
   echo "Version: $VERSION"
   echo ""
   echo "Usage:"
-  echo "  $0"
+  echo "  $0 [noscan]"
   echo ""
 }
 
@@ -39,8 +39,14 @@ function get_uart() {
   fi
 }
 
-if [[ $# -ne 0 ]]; then
-  current
+do_scan=true
+if [[ $# -eq 1 ]]; then
+  if [[ "$1" != "noscan" ]]; then
+    usage
+    exit 1
+  fi
+  do_scan=false
+elif [[ $# -ne 0 ]]; then
   usage
   exit 1
 fi
@@ -62,11 +68,13 @@ case $module in
   cypress)
     hciattach $btuart bcm43xx 3000000 flow
     hciconfig hci0 up
-    hciconfig hci0 piscan
-    hcitool scan
-    echo ""
-    echo "To run a scan again, use hcitool scan"
-    echo ""
+    if ($do_scan); then
+      hciconfig hci0 piscan
+      hcitool scan
+      echo ""
+      echo "To run a scan again, use hcitool scan"
+      echo ""
+    fi
     ;;
   nxp|nxp_1ym_pcie)
     hciattach $btuart any 115200 flow
@@ -75,21 +83,25 @@ case $module in
     killall hciattach
     hciattach $btuart any -s 3000000 3000000 flow
     hciconfig hci0 up
-    hciconfig hci0 piscan
-    hciconfig hci0 noencrypt
-    hcitool scan
-    echo ""
-    echo "To run a scan again, use hcitool scan"
-    echo ""
+    if ($do_scan); then
+      hciconfig hci0 piscan
+      hciconfig hci0 noencrypt
+      hcitool scan
+      echo ""
+      echo "To run a scan again, use hcitool scan"
+      echo ""
+    fi
     ;;
   nxp_1ym_sdio)
     insmod /usr/share/nxp_wireless/bin_sd8997_bt/bt8997.ko
     hciconfig hci0 up
     hcitool -i hci0 cmd 3f ee 01 XX
-    hcitool scan
-    echo ""
-    echo "To run a scan again, use hcitool scan"
-    echo ""
+    if ($do_scan); then
+      hcitool scan
+      echo ""
+      echo "To run a scan again, use hcitool scan"
+      echo ""
+    fi
     ;;
   *)
     usage

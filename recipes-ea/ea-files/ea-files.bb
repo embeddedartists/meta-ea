@@ -9,10 +9,12 @@ SRC_URI = "file://10-wired.network \
            file://25-wireless-mlan0.network \
            file://wpa_supplicant@mlan0.service \
            file://wpa_supplicant@wlan0.service \
+           file://hostapd@uap0.service \
+           file://hostapd@wlan1.service \
            file://autostart_hostapd.sh \
            file://optimize_for_iperf3.sh \
            file://telnetd.service \
-           file://udhcpd.service \
+           file://apd_service_aid.sh \
            file://bluetooth_up.sh \
            file://LICENSE \
            "
@@ -49,11 +51,13 @@ do_install () {
 	install -m 0644 ${WORKDIR}/25-wireless-mlan0.network ${D}${sysconfdir}/systemd/network/
 	install -m 0644 ${WORKDIR}/wpa_supplicant@mlan0.service ${D}${systemd_system_unitdir}
 	install -m 0644 ${WORKDIR}/wpa_supplicant@wlan0.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${WORKDIR}/hostapd@uap0.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${WORKDIR}/hostapd@wlan1.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${WORKDIR}/telnetd.service ${D}${systemd_system_unitdir}
 	install -m 0755 ${WORKDIR}/autostart_hostapd.sh ${D}/opt/ea/
 	install -m 0755 ${WORKDIR}/bluetooth_up.sh ${D}/opt/ea/
+	install -m 0755 ${WORKDIR}/apd_service_aid.sh ${D}/opt/ea/
 	install -m 0755 ${WORKDIR}/optimize_for_iperf3.sh ${D}/opt/ea/
-	install -m 0644 ${WORKDIR}/telnetd.service ${D}${systemd_system_unitdir}
-	install -m 0644 ${WORKDIR}/udhcpd.service ${D}${systemd_system_unitdir}
 
 	#
 	# Process a declaration like this in local.conf:

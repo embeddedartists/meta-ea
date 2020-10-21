@@ -1,0 +1,15 @@
+[Unit]
+Description=Hostapd for %i
+Requires=sys-subsystem-net-devices-wlan0.device
+After=sys-subsystem-net-devices-wlan0.device
+Before=network.target
+Wants=network.target
+
+[Service]
+ExecStart=/opt/ea/apd_service_aid.sh
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s QUIT $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+

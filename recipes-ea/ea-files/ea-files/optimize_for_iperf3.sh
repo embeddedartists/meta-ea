@@ -1,12 +1,14 @@
 #!/bin/sh
 
-wl -i wlan0 frameburst 1
-wl -i wlan0 PM 0
-wl -i wlan0 mpc 0
+# The wl operations below require the wlan0 interface
+if [ -e /sys/class/net/wlan0/operstate ]; then
+  wl frameburst 1
+  wl PM 0
+  wl mpc 0
+  wl scansuppress 1
+fi
 echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
 cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq
-wl -i wlan0 scansuppress
-wl -i wlan0 scansuppress 1
 
 echo "Done with configuration"
 echo "Run performance test with:"
