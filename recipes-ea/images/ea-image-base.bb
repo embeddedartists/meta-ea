@@ -59,6 +59,9 @@ IMAGE_INSTALL = "\
    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston-examples', '', d)} \
 "
 
+IMAGE_INSTALL_append_imx8mnea-ucom = "\
+   ea-resizefs \
+"
 
 inherit core-image
 

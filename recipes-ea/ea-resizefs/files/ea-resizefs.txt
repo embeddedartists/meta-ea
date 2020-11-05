@@ -1,0 +1,3 @@
+This file shows that the yocto recipe ea-resizefs was included in the build.
+The actual file system resizing is handled by a pkg_postinst_ontarget()
+script on first successful boot after a reflash of the file system.
