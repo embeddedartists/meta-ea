@@ -9,14 +9,16 @@ require recipes-kernel/linux/linux-imx.inc
 
 SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${SRCBRANCH}"
 
-LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
+LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 
-LOCALVERSION = "-2.2.0"
-SRCBRANCH = "ea_5.4.47"
-SRCREV = "ca870f01605d6e4c737e0f3cd04ada8140a3fbc5"
+LOCALVERSION = "-lts-5.10.y"
+SRCBRANCH = "ea_5.10.35"
+SRCREV = "a578015cea9ae6b20d26c8c6c7cd3574be34b14d"
 DEPENDS += "lzop-native bc-native"
 
 SRC_URI += "file://0001-uapi-Add-ion.h-to-userspace.patch"
+
+LINUX_VERSION = "5.10.35"
 
 DEFAULT_PREFERENCE = "1"
 
@@ -25,6 +27,14 @@ DO_CONFIG_EA_IMX_COPY_mx6 = "yes"
 DO_CONFIG_EA_IMX_COPY_mx7 = "yes"
 DO_CONFIG_EA_IMX_COPY_mx8 = "no"
 
+# Add setting for LF Mainline build
+IMX_KERNEL_CONFIG_AARCH32 = "ea_imx_defconfig"
+IMX_KERNEL_CONFIG_AARCH64 = "ea_imx8_defconfig"
+KBUILD_DEFCONFIG ?= ""
+KBUILD_DEFCONFIG_mx6= "${IMX_KERNEL_CONFIG_AARCH32}"
+KBUILD_DEFCONFIG_mx7= "${IMX_KERNEL_CONFIG_AARCH32}"
+KBUILD_DEFCONFIG_mx8= "${IMX_KERNEL_CONFIG_AARCH64}"
+
 addtask copy_defconfig after do_unpack before do_preconfigure
 do_copy_defconfig () {
     install -d ${B}
@@ -32,13 +42,13 @@ do_copy_defconfig () {
     if [ ${DO_CONFIG_EA_IMX_COPY} = "yes" ]; then
         # copy latest ea_imx_defconfig to use
         mkdir -p ${B}
-        cp ${S}/arch/arm/configs/ea_imx_defconfig ${B}/.config
-        cp ${S}/arch/arm/configs/ea_imx_defconfig ${B}/../defconfig
+        cp ${S}/arch/arm/configs/${IMX_KERNEL_CONFIG_AARCH32} ${B}/.config
+        cp ${S}/arch/arm/configs/${IMX_KERNEL_CONFIG_AARCH32} ${B}/../defconfig
     else
         # copy latest defconfig to use for mx8
         mkdir -p ${B}
-        cp ${S}/arch/arm64/configs/ea_imx8_defconfig ${B}/.config
-        cp ${S}/arch/arm64/configs/ea_imx8_defconfig ${B}/../defconfig
+        cp ${S}/arch/arm64/configs/${IMX_KERNEL_CONFIG_AARCH64} ${B}/.config
+        cp ${S}/arch/arm64/configs/${IMX_KERNEL_CONFIG_AARCH64} ${B}/../defconfig
     fi
 }
 

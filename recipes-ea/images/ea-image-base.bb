@@ -14,7 +14,6 @@ IMAGE_INSTALL = "\
    iproute2 \
    evtest \
    alsa-utils \
-   fbida \
    wget \
    nano \
    python-subprocess \
@@ -27,11 +26,6 @@ IMAGE_INSTALL = "\
    v4l-utils \
    packagegroup-fsl-gstreamer1.0 \
    packagegroup-fsl-gstreamer1.0-full \
-   murata-binaries \
-   backporttool-linux \
-   kernel-modules-pcie8997 \
-   linux-firmware-pcie8997 \
-   kernel-modules-sdio8997 \
    bluez5 \
    bluez5-noinst-tools \
    bluez5-obex \
@@ -39,7 +33,6 @@ IMAGE_INSTALL = "\
    obexftp \
    glibc-gconv-utf-16 \
    glibc-utils \
-   cyw-supplicant \
    iperf3 \
    tslib \
    tslib-tests \
@@ -48,9 +41,6 @@ IMAGE_INSTALL = "\
    mtdev \
    ea-files \
    mmc-utils \
-   hostap-conf \
-   hostap-utils \
-   hostapd \
    memtester \
    screen \
    u-boot-fw-utils \
@@ -59,6 +49,17 @@ IMAGE_INSTALL = "\
    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston-examples', '', d)} \
    libgpiod \
 "
+
+#   murata-binaries
+#   backporttool-linux
+#   kernel-modules-pcie8997
+#   linux-firmware-pcie8997
+#   kernel-modules-sdio8997
+#   cyw-supplicant
+#   hostap-conf
+#   hostap-utils
+#   hostapd
+
 
 IMAGE_INSTALL_append_imx8mnea-ucom = "\
    ea-resizefs \
