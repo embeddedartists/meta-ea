@@ -50,6 +50,7 @@ IMAGE_INSTALL = "\
    u-boot-fw-utils \
    u-boot-script-ea \
    libgpiod \
+   libgpiod-tools \
 "
 
 #   murata-binaries
