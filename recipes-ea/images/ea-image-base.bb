@@ -5,6 +5,10 @@ IMAGE_FEATURES += "splash ssh-server-openssh"
 
 LICENSE = "MIT"
 
+IMAGE_FEATURES += " \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston','', d)} \
+"
+
 IMAGE_INSTALL = "\
    ${CORE_IMAGE_BASE_INSTALL} \
    i2c-tools-misc \
@@ -45,8 +49,6 @@ IMAGE_INSTALL = "\
    screen \
    u-boot-fw-utils \
    u-boot-script-ea \
-   ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston-init', '', d)} \
-   ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston-examples', '', d)} \
    libgpiod \
 "
 
