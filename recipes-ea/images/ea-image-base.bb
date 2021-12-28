@@ -59,6 +59,7 @@ IMAGE_INSTALL = "\
    hostap-conf \
    hostap-utils \
    hostapd \
+   firmwared \
 "
 
 #   backporttool-linux
