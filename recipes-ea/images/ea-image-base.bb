@@ -59,12 +59,8 @@ IMAGE_INSTALL = "\
    hostap-conf \
    hostap-utils \
    hostapd \
+   backporttool-linux \
 "
-
-#   backporttool-linux
-#   kernel-modules-pcie8997
-#   linux-firmware-pcie8997
-#   kernel-modules-sdio8997
 
 
 IMAGE_INSTALL_append_imx8mnea-ucom = "\
