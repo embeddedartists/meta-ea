@@ -76,7 +76,7 @@ case $module in
       echo ""
     fi
     ;;
-  nxp|nxp_1ym_pcie)
+  nxp|nxp_1ym_pcie|nxp_1ym_sdio|nxp_1xl_pcie)
     hciattach $btuart any 115200 flow
     hciconfig hci0 up
     hcitool -i hci0 cmd 0x3f 0x0009 0xc0 0xc6 0x2d 0x00
@@ -86,17 +86,6 @@ case $module in
     if ($do_scan); then
       hciconfig hci0 piscan
       hciconfig hci0 noencrypt
-      hcitool scan
-      echo ""
-      echo "To run a scan again, use hcitool scan"
-      echo ""
-    fi
-    ;;
-  nxp_1ym_sdio)
-    insmod /usr/share/nxp_wireless/bin_sd8997_bt/bt8997.ko
-    hciconfig hci0 up
-    hcitool -i hci0 cmd 3f ee 01 XX
-    if ($do_scan); then
       hcitool scan
       echo ""
       echo "To run a scan again, use hcitool scan"

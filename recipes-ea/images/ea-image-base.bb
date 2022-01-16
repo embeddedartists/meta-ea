@@ -51,21 +51,15 @@ IMAGE_INSTALL = "\
    u-boot-script-ea \
    libgpiod \
    libgpiod-tools \
-   nxp-wlan-sdk \
-   kernel-module-nxp89xx \
+   firmwared \
    murata-binaries \
    cyw-supplicant \
    cyw-hostapd \
    hostap-conf \
    hostap-utils \
    hostapd \
-   firmwared \
+   backporttool-linux \
 "
-
-#   backporttool-linux
-#   kernel-modules-pcie8997
-#   linux-firmware-pcie8997
-#   kernel-modules-sdio8997
 
 
 IMAGE_INSTALL_append_imx8mnea-ucom = "\
