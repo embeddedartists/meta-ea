@@ -20,15 +20,10 @@ function start_hostapd_cypress() {
 }
 
 function start_hostapd_nxp() {
+    ifconfig mlan0 192.168.1.1 up
+    iw dev mlan0 interface add uap0 type __ap
     ifconfig uap0 192.168.5.1 up
-    cd $1
-    ./uaputl.exe -i uap0 sys_cfg_rates 0x8C 0x98 0xB0 0x12 0x24 0x48 0x60 0x6C
-    ./uaputl.exe -i uap0 vhtcfg 2 3 1 0x33D07130 0xFFFE 0xFFFE
-    ./uaputl.exe -i uap0 sys_cfg_channel 44 2
-    ./uaputl.exe -i uap0 sys_cfg_ssid Test_SSID
-    ./uaputl.exe -i uap0 bss_start
-    ./uaputl.exe sys_config
-    cd -
+    hostapd -B /etc/hostapd.conf
     /usr/sbin/udhcpd -f -S /etc/udhcpd_uap0.conf
 }
 
@@ -55,14 +50,9 @@ case $module in
     start_hostapd_cypress
     echo "Done"
     ;;
-  nxp)
+  nxp|nxp_1ym_pcie|nxp_1xl_pcie)
     echo "Starting..."
-    start_hostapd_nxp /usr/share/nxp_wireless/bin_mxm_wifiex/
-    echo "Done"
-    ;;
-  nxp_1ym_pcie)
-    echo "Starting..."
-    start_hostapd_nxp /usr/share/nxp_wireless/bin_pcie8997/
+    start_hostapd_nxp
     echo "Done"
     ;;
   nxp_1ym_sdio)

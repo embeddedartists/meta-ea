@@ -71,6 +71,9 @@ function setup_nxp() {
     # Preparing for DHCP server
     fix_udhcpd uap0
 
+    # Change interface name in hostapd.conf
+    sed -i '/^interface=/cinterface=uap0' /etc/hostapd.conf
+
     echo "Enabling hostapd (includes DHCP)"
     systemctl enable hostapd@uap0
   else
@@ -114,7 +117,7 @@ case $module in
         ;;
     esac
     ;;
-  nxp|nxp_1ym_pcie)
+  nxp|nxp_1ym_pcie|nxp_1xl_pcie)
     case $1 in
       enable)
         setup_nxp true

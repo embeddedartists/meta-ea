@@ -1,7 +1,7 @@
 [Unit]
 Description=Hostapd for %i
-Requires=sys-subsystem-net-devices-%i.device
-After=sys-subsystem-net-devices-%i.device
+Requires=sys-subsystem-net-devices-mlan0.device
+After=sys-subsystem-net-devices-mlan0.device
 Before=network.target
 Wants=network.target
 
