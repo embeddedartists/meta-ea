@@ -11,14 +11,14 @@ SRC_URI = "git://github.com/embeddedartists/linux-imx.git;protocol=git;branch=${
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 
-LOCALVERSION = "-lts-5.10.y"
-SRCBRANCH = "ea_5.10.72"
-SRCREV = "3993d8074471fee1867926089374737514c5251b"
+LOCALVERSION = "-lts-5.15.y"
+SRCBRANCH = "ea_5.15.y"
+SRCREV = "60bab3a40370f766e54215b78b9a009cbab35b91"
 DEPENDS += "lzop-native bc-native"
 
 SRC_URI += "file://0001-uapi-Add-ion.h-to-userspace.patch"
 
-LINUX_VERSION = "5.10.72"
+LINUX_VERSION = "5.15.5"
 
 DEFAULT_PREFERENCE = "1"
 

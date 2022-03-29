@@ -1,7 +1,7 @@
 # The imx-mkimage makefile requires a dtb file named (PLAT)-evk.dtb
 # where PLAT is the platform name, such as imx8mq. 
 # Copying and renaming the EA dtb file.
-do_compile_prepend() {
+do_compile:prepend() {
 	echo "Copying DTB"
 	echo ${DEPLOY_DIR_IMAGE}
 	echo ${BOOT_TOOLS}

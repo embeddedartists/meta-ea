@@ -1,16 +1,16 @@
 require u-boot-ea-common_${PV}.inc
 
 SUMMARY = "U-Boot bootloader fw_printenv/setenv utilities"
-DEPENDS_append = " mtd-utils bison-native"
+DEPENDS:append = " mtd-utils bison-native"
 
 SRC_URI += " \
    file://fw_env.config \
    file://fw_unlock_mmc.sh \
 "
 
-INSANE_SKIP_${PN} = "already-stripped"
-EXTRA_OEMAKE_class-target = 'CROSS_COMPILE=${TARGET_PREFIX} CC="${CC} ${CFLAGS} ${LDFLAGS}" HOSTCC="${BUILD_CC} ${BUILD_CFLAGS} ${BUILD_LDFLAGS}" V=1'
-EXTRA_OEMAKE_class-cross = 'ARCH=${TARGET_ARCH} CC="${CC} ${CFLAGS} ${LDFLAGS}" V=1'
+INSANE_SKIP:${PN} = "already-stripped"
+EXTRA_OEMAKE:class-target = 'CROSS_COMPILE=${TARGET_PREFIX} CC="${CC} ${CFLAGS} ${LDFLAGS}" HOSTCC="${BUILD_CC} ${BUILD_CFLAGS} ${BUILD_LDFLAGS}" V=1'
+EXTRA_OEMAKE:class-cross = 'ARCH=${TARGET_ARCH} CC="${CC} ${CFLAGS} ${LDFLAGS}" V=1'
 
 inherit uboot-config
 
@@ -26,22 +26,22 @@ do_install () {
     install -Dm 0644 ${WORKDIR}/fw_unlock_mmc.sh  ${D}${sysconfdir}/profile.d/fw_unlock_mmc.sh
 }
 
-do_install_class-cross () {
+do_install:class-cross () {
     install -d ${D}${bindir_cross}
     install -m 755 ${S}/tools/env/fw_printenv ${D}${bindir_cross}/fw_printenv
     install -m 755 ${S}/tools/env/fw_printenv ${D}${bindir_cross}/fw_setenv
 }
 
-SYSROOT_PREPROCESS_FUNCS_class-cross = "uboot_fw_utils_cross"
+SYSROOT_PREPROCESS_FUNCS:class-cross = "uboot_fw_utils_cross"
 uboot_fw_utils_cross() {
     sysroot_stage_dir ${D}${bindir_cross} ${SYSROOT_DESTDIR}${bindir_cross}
 }
 
-RPROVIDES_${PN} += "u-boot-fw-utils"
+RPROVIDES:${PN} += "u-boot-fw-utils"
 
 BBCLASSEXTEND = "cross"
 
-pkg_postinst_ontarget_${PN} () {
+pkg_postinst_ontarget:${PN} () {
     # Environment in eMMC is located in /dev/mmcblk*boot0 at offset (2Mb-8Kb).
     # See CONFIG_ENV_OFFSET in the configuration file for the u-boot.
     dev=`ls /dev/mmcblk*boot*`

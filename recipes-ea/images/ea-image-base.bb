@@ -52,17 +52,18 @@ IMAGE_INSTALL = "\
    libgpiod \
    libgpiod-tools \
    firmwared \
-   murata-binaries \
-   cyw-supplicant \
-   cyw-hostapd \
-   hostap-conf \
-   hostap-utils \
    hostapd \
-   backporttool-linux \
 "
 
+#   murata-binaries
+#   cyw-supplicant
+#   cyw-hostapd
+#   hostap-conf
+#   hostap-utils
+#   backporttool-linux
 
-IMAGE_INSTALL_append_imx8mnea-ucom = "\
+
+IMAGE_INSTALL:append:imx8mnea-ucom = "\
    ea-resizefs \
 "
 
@@ -73,8 +74,10 @@ inherit core-image
 # - Setting password for user 'root' to 'pass'"
 # - For more options see extrausers.bbclass"
 inherit extrausers
+# password is set to 'pass'. Encrypted using openssl passwd
+PASSWD = "bxQIsXX8YNXVk"
 EXTRA_USERS_PARAMS = " \
   useradd -p '' tester; \
   usermod -s /bin/sh tester; \
-  usermod -P 'pass' root \
+  usermod -p '${PASSWD}' root; \
 "
