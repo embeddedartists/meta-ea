@@ -74,8 +74,13 @@ inherit core-image
 # - Setting password for user 'root' to 'pass'"
 # - For more options see extrausers.bbclass"
 inherit extrausers
-# password is set to 'pass'. Encrypted using openssl passwd
-PASSWD = "bxQIsXX8YNXVk"
+
+# Password is set to 'pass'. Encrypted using mkpasswd with seed 'qwerty123456'.
+# NOTE: Special characters such as '$' must be escaped
+#
+# mkpasswd -m sha-512 pass -s "qwerty123456"
+
+PASSWD = '\$6\$qwerty123456\$FbXWy3i5PyuYYvNR.X1c4BbJ8zTcVEv7i9Di9erLRDTiIBiswLSnGo7iXBrhZPBNUh/TyLJ.RVbDiUFxWgmbX.'
 EXTRA_USERS_PARAMS = " \
   useradd -p '' tester; \
   usermod -s /bin/sh tester; \
