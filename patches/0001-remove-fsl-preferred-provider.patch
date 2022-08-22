@@ -1,14 +1,12 @@
-diff --git a/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc b/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc
-index 3589a0f81..a70cb3934 100644
+diff --git a/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc b/meta-sdk/conf/distro/include$
+index 3bdbaf5bc..b95abaafc 100644
 --- a/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc
 +++ b/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc
 @@ -1,5 +1,5 @@
--PREFERRED_PROVIDER_virtual/bootloader:imx = "u-boot-imx"
--PREFERRED_PROVIDER_virtual/kernel:imx = "linux-imx"
-+#PREFERRED_PROVIDER_virtual/bootloader:imx = "u-boot-imx"
-+#PREFERRED_PROVIDER_virtual/kernel:imx = "linux-imx"
+-PREFERRED_PROVIDER_virtual/bootloader:imx-nxp-bsp = "u-boot-imx"
+-PREFERRED_PROVIDER_virtual/kernel:imx-nxp-bsp = "linux-imx"
++#PREFERRED_PROVIDER_virtual/bootloader:imx-nxp-bsp = "u-boot-imx"
++#PREFERRED_PROVIDER_virtual/kernel:imx-nxp-bsp = "linux-imx"
  PREFERRED_PROVIDER_linux-imx-mfgtool = "linux-imx-mfgtool"
 
- PREFERRED_VERSION_linux-libc-headers:imx ?= "5.14"
-
- 
+ PREFERRED_PROVIDER_opencl-headers:imxgpu = "imx-gpu-viv

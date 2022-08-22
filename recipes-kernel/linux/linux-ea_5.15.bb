@@ -23,17 +23,17 @@ LINUX_VERSION = "5.15.32"
 DEFAULT_PREFERENCE = "1"
 
 DO_CONFIG_EA_IMX_COPY = "no"
-DO_CONFIG_EA_IMX_COPY:mx6 = "yes"
-DO_CONFIG_EA_IMX_COPY:mx7 = "yes"
-DO_CONFIG_EA_IMX_COPY:mx8 = "no"
+DO_CONFIG_EA_IMX_COPY:mx6-nxp-bsp = "yes"
+DO_CONFIG_EA_IMX_COPY:mx7-nxp-bsp = "yes"
+DO_CONFIG_EA_IMX_COPY:mx8-nxp-bsp = "no"
 
 # Add setting for LF Mainline build
 IMX_KERNEL_CONFIG_AARCH32 = "ea_imx_defconfig"
 IMX_KERNEL_CONFIG_AARCH64 = "ea_imx8_defconfig"
 KBUILD_DEFCONFIG ?= ""
-KBUILD_DEFCONFIG:mx6= "${IMX_KERNEL_CONFIG_AARCH32}"
-KBUILD_DEFCONFIG:mx7= "${IMX_KERNEL_CONFIG_AARCH32}"
-KBUILD_DEFCONFIG:mx8= "${IMX_KERNEL_CONFIG_AARCH64}"
+KBUILD_DEFCONFIG:mx6-nxp-bsp = "${IMX_KERNEL_CONFIG_AARCH32}"
+KBUILD_DEFCONFIG:mx7-nxp-bsp = "${IMX_KERNEL_CONFIG_AARCH32}"
+KBUILD_DEFCONFIG:mx8-nxp-bsp = "${IMX_KERNEL_CONFIG_AARCH64}"
 
 addtask copy_defconfig after do_unpack before do_preconfigure
 do_copy_defconfig () {
@@ -52,9 +52,9 @@ do_copy_defconfig () {
     fi
 }
 
-COMPATIBLE_MACHINE = "(mx6|mx7|mx8)"
+COMPATIBLE_MACHINE = "(imx-nxp-bsp)"
 
-EXTRA_OEMAKE:append:mx6 = " ARCH=arm"
-EXTRA_OEMAKE:append:mx7 = " ARCH=arm"
-EXTRA_OEMAKE:append:mx8 = " ARCH=arm64"
+EXTRA_OEMAKE:append:mx6-nxp-bsp = " ARCH=arm"
+EXTRA_OEMAKE:append:mx7-nxp-bsp = " ARCH=arm"
+EXTRA_OEMAKE:append:mx8-nxp-bsp = " ARCH=arm64"
 

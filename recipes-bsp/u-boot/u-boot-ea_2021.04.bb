@@ -7,7 +7,7 @@ PROVIDES += "u-boot"
 
 BOOT_TOOLS = "imx-boot-tools"
 
-do_deploy:append:mx8m () {
+do_deploy:append:mx8m-nxp-bsp () {
     # Deploy the mkimage, u-boot-nodtb.bin and fsl-imx8mq-XX.dtb for mkimage to generate boot binary
     if [ -n "${UBOOT_CONFIG}" ]
     then
@@ -30,10 +30,10 @@ do_deploy:append:mx8m () {
 
 }
 
-COMPATIBLE_MACHINE = "(mx6|mx7|mx8)"
+COMPATIBLE_MACHINE = "(imx-nxp-bsp)"
 
-UBOOT_NAME:mx6 = "u-boot-${MACHINE}.bin-${UBOOT_CONFIG}"
-UBOOT_NAME:mx7 = "u-boot-${MACHINE}.bin-${UBOOT_CONFIG}"
-UBOOT_NAME:mx8 = "u-boot-${MACHINE}.bin-${UBOOT_CONFIG}"
+UBOOT_NAME:mx6-nxp-bsp = "u-boot-${MACHINE}.bin-${UBOOT_CONFIG}"
+UBOOT_NAME:mx7-nxp-bsp = "u-boot-${MACHINE}.bin-${UBOOT_CONFIG}"
+UBOOT_NAME:mx8-nxp-bsp = "u-boot-${MACHINE}.bin-${UBOOT_CONFIG}"
 
 

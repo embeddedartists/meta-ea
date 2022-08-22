@@ -20,10 +20,6 @@ IMAGE_INSTALL = "\
    alsa-utils \
    wget \
    nano \
-   python-subprocess \
-   python-pyserial \
-   python-argparse \
-   python-pip \
    gdbserver \
    openssh-sftp-server \
    sqlite3 \

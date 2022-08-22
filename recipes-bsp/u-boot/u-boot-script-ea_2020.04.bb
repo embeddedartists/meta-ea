@@ -7,7 +7,7 @@ SRC_URI += " \
 "
 
 BOOTSCRIPT = "${WORKDIR}/bootscript.txt"
-BOOTSCRIPT:mx8 = "${WORKDIR}/bootscript_imx8.txt"
+BOOTSCRIPT:mx8m-nxp-bsp = "${WORKDIR}/bootscript_imx8.txt"
 
 inherit uboot-config
 inherit deploy
@@ -36,4 +36,4 @@ addtask deploy after do_install before do_build
 
 FILES:${PN} += "/"
 
-COMPATIBLE_MACHINE = "(mx6|mx7|mx8)"
+COMPATIBLE_MACHINE = "(imx-nxp-bsp)"
