@@ -59,6 +59,7 @@ IMAGE_INSTALL = "\
    hostap-utils \
    hostapd \
    backporttool-linux \
+   ethtool \
 "
 
 
