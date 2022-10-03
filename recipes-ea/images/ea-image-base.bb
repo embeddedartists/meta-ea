@@ -13,6 +13,7 @@ IMAGE_INSTALL = "\
    ${CORE_IMAGE_BASE_INSTALL} \
    i2c-tools-misc \
    i2c-tools \
+   spitools \
    pciutils \
    can-utils \
    iproute2 \
