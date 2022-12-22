@@ -49,14 +49,14 @@ IMAGE_INSTALL = "\
    libgpiod-tools \
    firmwared \
    hostapd \
+   murata-binaries \
+   cyw-supplicant \
+   cyw-hostapd \
+   hostap-conf \
+   hostap-utils \
+   backporttool-linux \
 "
 
-#   murata-binaries
-#   cyw-supplicant
-#   cyw-hostapd
-#   hostap-conf
-#   hostap-utils
-#   backporttool-linux
 
 
 IMAGE_INSTALL:append:imx8mnea-ucom = "\
