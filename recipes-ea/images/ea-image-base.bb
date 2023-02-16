@@ -16,6 +16,7 @@ IMAGE_INSTALL = "\
    pciutils \
    can-utils \
    iproute2 \
+   ethtool \
    evtest \
    alsa-utils \
    wget \
