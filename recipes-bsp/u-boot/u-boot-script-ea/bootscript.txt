@@ -56,6 +56,8 @@ if itest.s "x" != "x${show_env}" ; then
 	printenv
 fi
 
+echo "Will be using this dtb file: ${fdt_file}"
+
 if itest.s "x" != "x${skip_booting}" ; then
 	echo "!!!! Selected to skip booting !!!!";
 	echo "!!!! Unset skip_booting variable to enable booting again !!!!";
