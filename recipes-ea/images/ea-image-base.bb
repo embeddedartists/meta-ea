@@ -56,6 +56,7 @@ IMAGE_INSTALL = "\
    hostap-conf \
    hostap-utils \
    backporttool-linux \
+   kernel-module-iw612 \
 "
 
 
