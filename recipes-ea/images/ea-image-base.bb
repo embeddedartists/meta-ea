@@ -49,14 +49,15 @@ IMAGE_INSTALL = "\
    libgpiod \
    libgpiod-tools \
    firmwared \
-   hostapd \
-   murata-binaries \
-   cyw-supplicant \
-   cyw-hostapd \
-   hostap-conf \
-   hostap-utils \
-   backporttool-linux \
 "
+
+#   hostapd
+#   murata-binaries
+#   cyw-supplicant
+#   cyw-hostapd
+#   hostap-conf
+#   hostap-utils
+#   backporttool-linux
 
 
 
