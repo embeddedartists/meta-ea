@@ -184,25 +184,21 @@ echo "# i.MX Yocto Project Release layers" >> $BUILD_DIR/conf/bblayers.conf
 hook_in_layer meta-imx/meta-bsp
 hook_in_layer meta-imx/meta-sdk
 hook_in_layer meta-imx/meta-ml
+hook_in_layer meta-imx/meta-v2x
 hook_in_layer meta-nxp-demo-experience
 
 echo "" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-arm/meta-arm\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-arm/meta-arm-toolchain\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-browser/meta-chromium\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-clang\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-gnome\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-networking\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-filesystems\"" >> $BUILD_DIR/conf/bblayers.conf
-
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-qt6\"" >> $BUILD_DIR/conf/bblayers.conf
-echo "BBLAYERS += \"\${BSPDIR}/sources/meta-python2\"" >> $BUILD_DIR/conf/bblayers.conf
-
-if [ -d ../sources/meta-ivi ]; then
-    echo -e "\n## Genivi layers" >> $BUILD_DIR/conf/bblayers.conf
-    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-gplv2\"" >> $BUILD_DIR/conf/bblayers.conf
-    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-ivi/meta-ivi\"" >> $BUILD_DIR/conf/bblayers.conf
-    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-ivi/meta-ivi-bsp\"" >> $BUILD_DIR/conf/bblayers.conf
-    echo "BBLAYERS += \"\${BSPDIR}/sources/meta-ivi/meta-ivi-test\"" >> $BUILD_DIR/conf/bblayers.conf
-fi
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-security/meta-parsec\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-security/meta-tpm\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-virtualization\"" >> $BUILD_DIR/conf/bblayers.conf
 
 echo BSPDIR=$BSPDIR
 echo BUILD_DIR=$BUILD_DIR
