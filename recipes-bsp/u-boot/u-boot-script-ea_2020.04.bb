@@ -8,6 +8,7 @@ SRC_URI += " \
 
 BOOTSCRIPT = "${WORKDIR}/bootscript.txt"
 BOOTSCRIPT:mx8m-nxp-bsp = "${WORKDIR}/bootscript_imx8.txt"
+BOOTSCRIPT:mx93-nxp-bsp = "${WORKDIR}/bootscript_imx8.txt"
 
 inherit uboot-config
 inherit deploy
