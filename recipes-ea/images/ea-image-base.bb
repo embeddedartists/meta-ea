@@ -49,6 +49,9 @@ IMAGE_INSTALL = "\
    libgpiod \
    libgpiod-tools \
    firmwared \
+   python3-pip \
+   python3 \
+   python3-dev\
 "
 
 #   hostapd
