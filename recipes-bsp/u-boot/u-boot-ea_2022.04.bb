@@ -9,7 +9,7 @@ BOOT_TOOLS = "imx-boot-tools"
 
 do_deploy:append:mx8m-nxp-bsp () {
     # Deploy the mkimage, u-boot-nodtb.bin and fsl-imx8mq-XX.dtb for mkimage to generate boot binary
-    if [ -n "${UBOOT_CONFIG}" ]
+    if [ -n "${UBOOT_CONFIG}" ] && [ "${UBOOT_CONFIG}" != "mfgtool" ]
     then
         for config in ${UBOOT_MACHINE}; do
             i=$(expr $i + 1);
