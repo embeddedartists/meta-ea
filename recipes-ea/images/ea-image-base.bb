@@ -52,12 +52,12 @@ IMAGE_INSTALL = "\
    python3-pip \
    python3 \
    python3-dev\
-   hostapd
-   murata-binaries
-   cyw-supplicant
-   cyw-hostapd
-   hostap-conf
-   hostap-utils
+   hostapd \
+   murata-binaries \
+   cyw-supplicant \
+   cyw-hostapd \
+   hostap-conf \
+   hostap-utils \
 "
 
 #   backporttool-linux
