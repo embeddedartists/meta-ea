@@ -58,6 +58,7 @@ IMAGE_INSTALL = "\
    cyw-hostapd \
    hostap-conf \
    hostap-utils \
+   auditd \
 "
 
 #   backporttool-linux
