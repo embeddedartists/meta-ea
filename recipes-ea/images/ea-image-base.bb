@@ -57,6 +57,7 @@ IMAGE_INSTALL = "\
    hostap-utils \
    backporttool-linux \
    kernel-module-iw612 \
+   auditd \
 "
 
 
