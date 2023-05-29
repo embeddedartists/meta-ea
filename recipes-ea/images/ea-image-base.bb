@@ -58,11 +58,11 @@ IMAGE_INSTALL = "\
    cyw-hostapd \
    hostap-conf \
    hostap-utils \
+   kernel-module-nxp-wlan \
+   linux-firmware \
+   backporttool-linux \
    auditd \
 "
-
-#   backporttool-linux
-
 
 
 IMAGE_INSTALL:append:imx8mnea-ucom = "\
