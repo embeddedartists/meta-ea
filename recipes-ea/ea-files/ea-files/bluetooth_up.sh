@@ -33,6 +33,8 @@ function get_uart() {
     echo /dev/ttymxc0
   elif [[ $model == *'i.MX8MQ'* ]]; then
     echo /dev/ttymxc1
+  elif [[ $model == *'i.MX93'* ]]; then
+    echo /dev/ttyLP4
   else
     echo "Unknown model"
     exit 2
