@@ -3,7 +3,7 @@
 require recipes-bsp/u-boot/u-boot.inc
 require recipes-bsp/u-boot/u-boot-ea-common_${PV}.inc
 
-PROVIDES += "u-boot"
+PROVIDES += "u-boot u-boot-mfgtool"
 
 BOOT_TOOLS = "imx-boot-tools"
 
