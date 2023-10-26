@@ -56,6 +56,7 @@ clean_up()
 # Apply patches to recipes
 #
 patch -Np1 -r - sources/meta-imx/meta-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
+patch -Np1 -r - sources/meta-imx/meta-bsp/recipes-bsp/imx-mkimage/imx-boot_1.0.bb < sources/meta-ea/patches/0002-mx93-soc-rev0.patch
 
 # get command line options
 OLD_OPTIND=$OPTIND
