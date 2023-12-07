@@ -50,46 +50,46 @@ KBUILD_DEFCONFIG:mx8-nxp-bsp = "${IMX_KERNEL_CONFIG_AARCH64}"
 KBUILD_DEFCONFIG:mx9-nxp-bsp = "${IMX_KERNEL_CONFIG_AARCH64}"
 
 
-# Use a verbatim copy of the defconfig from the linux-imx repo.
-# IMPORTANT: This task effectively disables kernel config fragments
-# since the config fragments applied in do_kernel_configme are replaced.
-addtask copy_defconfig after do_kernel_configme before do_kernel_localversion
-do_copy_defconfig () {
-    install -d ${B}
-
-    if [ ${DO_CONFIG_EA_IMX_COPY} = "yes" ]; then
-        # copy latest ea_imx_defconfig to use
-        mkdir -p ${B}
-        cp ${S}/arch/arm/configs/${IMX_KERNEL_CONFIG_AARCH32} ${B}/.config
-    else
-        # copy latest defconfig to use for mx8
-        mkdir -p ${B}
-        cp ${S}/arch/arm64/configs/${IMX_KERNEL_CONFIG_AARCH64} ${B}/.config
-    fi
-}
-
-DELTA_KERNEL_DEFCONFIG ?= ""
-#DELTA_KERNEL_DEFCONFIG:mx8-nxp-bsp = "imx.config"
-
-do_merge_delta_config[dirs] = "${B}"
-do_merge_delta_config[depends] += " \
-    flex-native:do_populate_sysroot \
-    bison-native:do_populate_sysroot \
-"
-do_merge_delta_config() {
-    for deltacfg in ${DELTA_KERNEL_DEFCONFIG}; do
-        if [ -f ${S}/arch/${ARCH}/configs/${deltacfg} ]; then
-            ${KERNEL_CONFIG_COMMAND}
-            oe_runmake_call -C ${S} CC="${KERNEL_CC}" O=${B} ${deltacfg}
-        elif [ -f "${WORKDIR}/${deltacfg}" ]; then
-            ${S}/scripts/kconfig/merge_config.sh -m .config ${WORKDIR}/${deltacfg}
-        elif [ -f "${deltacfg}" ]; then
-            ${S}/scripts/kconfig/merge_config.sh -m .config ${deltacfg}
-        fi
-    done
-    cp .config ${WORKDIR}/defconfig
-}
-addtask merge_delta_config before do_kernel_localversion after do_copy_defconfig
+## Use a verbatim copy of the defconfig from the linux-imx repo.
+## IMPORTANT: This task effectively disables kernel config fragments
+## since the config fragments applied in do_kernel_configme are replaced.
+#addtask copy_defconfig after do_kernel_configme before do_kernel_localversion
+#do_copy_defconfig () {
+#    install -d ${B}
+#
+#    if [ ${DO_CONFIG_EA_IMX_COPY} = "yes" ]; then
+#        # copy latest ea_imx_defconfig to use
+#        mkdir -p ${B}
+#        cp ${S}/arch/arm/configs/${IMX_KERNEL_CONFIG_AARCH32} ${B}/.config
+#    else
+#        # copy latest defconfig to use for mx8
+#        mkdir -p ${B}
+#        cp ${S}/arch/arm64/configs/${IMX_KERNEL_CONFIG_AARCH64} ${B}/.config
+#    fi
+#}
+#
+#DELTA_KERNEL_DEFCONFIG ?= ""
+##DELTA_KERNEL_DEFCONFIG:mx8-nxp-bsp = "imx.config"
+#
+#do_merge_delta_config[dirs] = "${B}"
+#do_merge_delta_config[depends] += " \
+#    flex-native:do_populate_sysroot \
+#    bison-native:do_populate_sysroot \
+#"
+#do_merge_delta_config() {
+#    for deltacfg in ${DELTA_KERNEL_DEFCONFIG}; do
+#        if [ -f ${S}/arch/${ARCH}/configs/${deltacfg} ]; then
+#            ${KERNEL_CONFIG_COMMAND}
+#            oe_runmake_call -C ${S} CC="${KERNEL_CC}" O=${B} ${deltacfg}
+#        elif [ -f "${WORKDIR}/${deltacfg}" ]; then
+#            ${S}/scripts/kconfig/merge_config.sh -m .config ${WORKDIR}/${deltacfg}
+#        elif [ -f "${deltacfg}" ]; then
+#            ${S}/scripts/kconfig/merge_config.sh -m .config ${deltacfg}
+#        fi
+#    done
+#    cp .config ${WORKDIR}/defconfig
+#}
+#addtask merge_delta_config before do_kernel_localversion after do_copy_defconfig
 
 do_kernel_configcheck[noexec] = "1"
 
