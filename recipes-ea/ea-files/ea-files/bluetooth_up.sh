@@ -93,11 +93,7 @@ case $module in
     fi
     ;;
   nxp|nxp_1ym_pcie|nxp_1ym_sdio|nxp_1xl_pcie)
-    hciattach $btuart any 115200 flow
-    hciconfig hci0 up
-    hcitool -i hci0 cmd 0x3f 0x0009 0xc0 0xc6 0x2d 0x00
-    killall hciattach
-    hciattach $btuart any -s 3000000 3000000 flow
+    insmod /usr/share/murata_wireless/btnxpuart.ko
     hciconfig hci0 up
     if ($do_scan); then
       hciconfig hci0 piscan
