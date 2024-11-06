@@ -7,6 +7,16 @@ PROVIDES += "u-boot u-boot-mfgtool"
 
 BOOT_TOOLS = "imx-boot-tools"
 
+#
+# Got build errors when using 'devtool modify u-boot-ea'.
+# In poky/scripts/lib/devtool/standard.py there is a do_configure:append
+# that will copy .config if KCONFIG_CONFIG_ENABLE_MENUCONFIG is true
+# The path to .config however seem to get incorrect
+#
+# Setting KCONFIG_CONFIG_ENABLE_MENUCONFIG to false solves the problem.
+#
+KCONFIG_CONFIG_ENABLE_MENUCONFIG = "false"
+
 do_deploy:append:mx8m-nxp-bsp () {
     # Deploy the mkimage, u-boot-nodtb.bin and fsl-imx8mq-XX.dtb for mkimage to generate boot binary
     if [ -n "${UBOOT_CONFIG}" ] && [ "${UBOOT_CONFIG}" != "mfgtool" ]
