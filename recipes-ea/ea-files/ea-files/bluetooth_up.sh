@@ -74,9 +74,12 @@ case $module in
         insmod /usr/share/murata_wireless/hci_uart.ko
         hciconfig hci0 up
         if ($do_scan); then
-            hcitool scan
+            bluetoothctl agent on
+            bluetoothctl pairable on
+            bluetoothctl discoverable on
+            bluetoothctl --timeout 3 scan on
             echo ""
-            echo "To run a scan again, use hcitool scan"
+            echo "To run a scan again, use bluetoothctl scan on"
             echo ""
         fi
     fi
@@ -86,9 +89,12 @@ case $module in
     hciconfig hci0 up
     if ($do_scan); then
       hciconfig hci0 piscan
-      hcitool scan
+      bluetoothctl agent on
+      bluetoothctl pairable on
+      bluetoothctl discoverable on
+      bluetoothctl --timeout 3 scan on
       echo ""
-      echo "To run a scan again, use hcitool scan"
+      echo "To run a scan again, use bluetoothctl scan on"
       echo ""
     fi
     ;;
@@ -98,9 +104,12 @@ case $module in
     if ($do_scan); then
       hciconfig hci0 piscan
       hciconfig hci0 noencrypt
-      hcitool scan
+      bluetoothctl agent on
+      bluetoothctl pairable on
+      bluetoothctl discoverable on
+      bluetoothctl --timeout 3 scan on
       echo ""
-      echo "To run a scan again, use hcitool scan"
+      echo "To run a scan again, use bluetoothctl scan on"
       echo ""
     fi
     ;;
