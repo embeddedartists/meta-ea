@@ -55,16 +55,14 @@ IMAGE_INSTALL = "\
    python3-dev\
    auditd \
    hostapd \
+   hostap-conf \
+   hostap-utils \
    cyw-supplicant \
    cyw-hostapd \
    kernel-module-nxp-wlan \
    linux-firmware \
    murata-binaries \
 "
-
-#   hostap-conf
-#   hostap-utils
-#   backporttool-linux
 
 
 
