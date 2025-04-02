@@ -62,6 +62,7 @@ IMAGE_INSTALL = "\
    kernel-module-nxp-wlan \
    linux-firmware \
    murata-binaries \
+   iptables \
 "
 
 
