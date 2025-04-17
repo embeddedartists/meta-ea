@@ -6,5 +6,5 @@ SPLASH_IMAGES = "file://psplash-poky-img.png;outsuffix=default"
 
 do_configure:append () {
 	cd ${S}
-	cp ../psplash-colors.h ./
+	cp ${UNPACKDIR}/psplash-colors.h ./
 }

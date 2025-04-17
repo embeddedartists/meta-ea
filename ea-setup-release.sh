@@ -169,8 +169,8 @@ hook_in_layer meta-imx/meta-imx-sdk
 hook_in_layer meta-imx/meta-imx-ml
 hook_in_layer meta-imx/meta-imx-v2x
 hook_in_layer meta-nxp-demo-experience
-hook_in_layer meta-matter/meta-nxp-matter-baseline
-hook_in_layer meta-matter/meta-nxp-openthread
+hook_in_layer meta-nxp-connectivity/meta-nxp-matter-baseline
+hook_in_layer meta-nxp-connectivity/meta-nxp-openthread
 
 echo "" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-arm/meta-arm\"" >> $BUILD_DIR/conf/bblayers.conf
@@ -199,7 +199,8 @@ fi
 echo "#Embedded Artists Yocto layer" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.conf
 
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+# Temporary remove wireless related
+#echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
 
 cd  $BUILD_DIR
 clean_up

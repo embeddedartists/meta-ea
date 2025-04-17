@@ -19,7 +19,8 @@ SRC_URI = "file://10-wired.network \
            file://LICENSE \
            "
 
-S = "${WORKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 EA_FILES_644 ?= ""
 EA_FILES_755 ?= ""
@@ -46,18 +47,18 @@ do_install () {
 		install -m 0755 -d ${D}${d}
 	done
 
-	install -m 0644 ${WORKDIR}/10-wired.network ${D}${sysconfdir}/systemd/network/
-	install -m 0644 ${WORKDIR}/20-wireless-wlan0.network ${D}${sysconfdir}/systemd/network/
-	install -m 0644 ${WORKDIR}/25-wireless-mlan0.network ${D}${sysconfdir}/systemd/network/
-	install -m 0644 ${WORKDIR}/wpa_supplicant@mlan0.service ${D}${systemd_system_unitdir}
-	install -m 0644 ${WORKDIR}/wpa_supplicant@wlan0.service ${D}${systemd_system_unitdir}
-	install -m 0644 ${WORKDIR}/hostapd@uap0.service ${D}${systemd_system_unitdir}
-	install -m 0644 ${WORKDIR}/hostapd@wlan1.service ${D}${systemd_system_unitdir}
-	install -m 0644 ${WORKDIR}/telnetd.service ${D}${systemd_system_unitdir}
-	install -m 0755 ${WORKDIR}/autostart_hostapd.sh ${D}/opt/ea/
-	install -m 0755 ${WORKDIR}/bluetooth_up.sh ${D}/opt/ea/
-	install -m 0755 ${WORKDIR}/apd_service_aid.sh ${D}/opt/ea/
-	install -m 0755 ${WORKDIR}/optimize_for_iperf3.sh ${D}/opt/ea/
+	install -m 0644 ${S}/10-wired.network ${D}${sysconfdir}/systemd/network/
+	install -m 0644 ${S}/20-wireless-wlan0.network ${D}${sysconfdir}/systemd/network/
+	install -m 0644 ${S}/25-wireless-mlan0.network ${D}${sysconfdir}/systemd/network/
+	install -m 0644 ${S}/wpa_supplicant@mlan0.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${S}/wpa_supplicant@wlan0.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${S}/hostapd@uap0.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${S}/hostapd@wlan1.service ${D}${systemd_system_unitdir}
+	install -m 0644 ${S}/telnetd.service ${D}${systemd_system_unitdir}
+	install -m 0755 ${S}/autostart_hostapd.sh ${D}/opt/ea/
+	install -m 0755 ${S}/bluetooth_up.sh ${D}/opt/ea/
+	install -m 0755 ${S}/apd_service_aid.sh ${D}/opt/ea/
+	install -m 0755 ${S}/optimize_for_iperf3.sh ${D}/opt/ea/
 
 	#
 	# Process a declaration like this in local.conf:

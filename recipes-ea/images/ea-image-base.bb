@@ -54,16 +54,18 @@ IMAGE_INSTALL = "\
    python3 \
    python3-dev\
    auditd \
-   hostapd \
-   hostap-conf \
-   hostap-utils \
-   cyw-supplicant \
-   cyw-hostapd \
-   kernel-module-nxp-wlan \
-   linux-firmware \
-   murata-binaries \
    iptables \
 "
+
+# Temporary remove wireless related
+#   hostapd 
+#   hostap-conf 
+#   hostap-utils 
+#   cyw-supplicant 
+#   cyw-hostapd 
+#   kernel-module-nxp-wlan 
+#   linux-firmware 
+#   murata-binaries 
 
 
 
