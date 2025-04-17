@@ -23,6 +23,10 @@ SRC_URI = "${KERNEL_SRC}"
 
 SRCREV = "ca536e6c947ca8589e666ba17d6114a55be50638"
 
+SRC_URI += "file://0001-tty-vt-conmakehash-Don-t-mention-the-full-path-of-th.patch"
+SRC_URI += "file://0001-video-logo-Drop-full-path-of-the-input-filename-in-g.patch"
+SRC_URI += "file://0001-lib-build_OID_registry-don-t-mention-the-full-path-o.patch"
+
 # PV is defined in the base in linux-imx.inc file and uses the LINUX_VERSION definition
 # required by kernel-yocto.bbclass.
 #
