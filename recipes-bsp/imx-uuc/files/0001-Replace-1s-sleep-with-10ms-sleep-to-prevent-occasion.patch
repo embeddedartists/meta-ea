@@ -4,6 +4,8 @@ Date: Thu, 28 May 2020 14:00:06 +0000
 Subject: [PATCH] Replace 1s sleep with 10ms sleep to prevent occasional
  deadlock on imx8mn
 
+Upstream-Status: Inappropriate  [Specific for the 8MN uCOM] 
+
 ---
  linuxrc | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
