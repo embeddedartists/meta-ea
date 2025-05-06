@@ -55,17 +55,15 @@ IMAGE_INSTALL = "\
    python3-dev\
    auditd \
    iptables \
+   linux-firmware \
+   murata-binaries \
+   nxp-wlan-sdk \
+   kernel-module-nxp-wlan \
+   hostapd \
+   hostap-conf \
+   hostap-utils \
+   wpa-supplicant \
 "
-
-# Temporary remove wireless related
-#   hostapd 
-#   hostap-conf 
-#   hostap-utils 
-#   cyw-supplicant 
-#   cyw-hostapd 
-#   kernel-module-nxp-wlan 
-#   linux-firmware 
-#   murata-binaries 
 
 
 
