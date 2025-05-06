@@ -5,6 +5,13 @@ require recipes-bsp/u-boot/u-boot-ea-common_${PV}.inc
 
 PROVIDES += "u-boot u-boot-mfgtool"
 
+inherit uuu_bootloader_tag
+# The UUU tag goes on the boot partition. For 8+, the boot partition image
+# is imx-boot, so disable UUU-tagging here
+UUU_BOOTLOADER:mx8-generic-bsp = ""
+UUU_BOOTLOADER:mx9-generic-bsp = ""
+
+
 BOOT_TOOLS = "imx-boot-tools"
 
 #
