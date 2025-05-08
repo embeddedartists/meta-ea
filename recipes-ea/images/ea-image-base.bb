@@ -55,14 +55,6 @@ IMAGE_INSTALL = "\
    python3-dev\
    auditd \
    iptables \
-   linux-firmware \
-   murata-binaries \
-   nxp-wlan-sdk \
-   kernel-module-nxp-wlan \
-   hostapd \
-   hostap-conf \
-   hostap-utils \
-   wpa-supplicant \
 "
 
 
@@ -70,6 +62,8 @@ IMAGE_INSTALL = "\
 IMAGE_INSTALL:append:imx8mnea-ucom = "\
    ea-resizefs \
 "
+
+IMAGE_INSTALL:append = " packagegroup-ea-wireless"
 
 inherit core-image
 
