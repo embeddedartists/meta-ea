@@ -27,6 +27,8 @@ function get_uart() {
     echo /dev/ttymxc1
   elif [[ $model == *'i.MX7ULP'* ]]; then
     echo /dev/ttyLP2
+  elif [[ $model == *'i.MX8MM SOM'* ]]; then
+    echo /dev/ttymxc0
   elif [[ $model == *'i.MX8MM'* ]]; then
     echo /dev/ttymxc0
   elif [[ $model == *'i.MX8M Nano'* ]]; then
