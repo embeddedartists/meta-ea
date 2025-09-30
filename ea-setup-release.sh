@@ -103,6 +103,14 @@ if [ -z "$MACHINE" ]; then
     MACHINE='imx6qpsabresd'
 fi
 
+if [ "$MACHINE" == "imx8mmea-som" ]; then
+    if [ "$DISTRO" != "fsl-imx-xwayland" ]; then
+        echo -e "\n ERROR - Only the fsl-imx-xwayland distro is supported for the i.MX8M Mini SOM"
+        echo -e "\n"
+        return 1
+    fi
+fi
+
 case $MACHINE in
 imx8*)
     case $DISTRO in
@@ -198,7 +206,9 @@ fi
 
 echo "#Embedded Artists Yocto layer" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.conf
-
+if [ "$MACHINE" == "imx8mmea-som" ]; then
+    echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea-dx \"" >> $BUILD_DIR/conf/bblayers.conf
+fi
 echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
 
 cd  $BUILD_DIR
