@@ -51,12 +51,6 @@ clean_up()
     exit_message clean_up
 }
 
-
-#
-# Apply patches to recipes
-#
-patch -Np1 -r - sources/meta-imx/meta-imx-sdk/conf/distro/include/fsl-imx-preferred-env.inc < sources/meta-ea/patches/0001-remove-fsl-preferred-provider.patch
-
 # get command line options
 OLD_OPTIND=$OPTIND
 unset FSLDISTRO
