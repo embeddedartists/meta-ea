@@ -57,7 +57,9 @@ IMAGE_INSTALL = "\
    iptables \
 "
 
-
+IMAGE_INSTALL:append:imx8mmea-som = "\
+   packagegroup-ea-dx-extended \
+"
 
 IMAGE_INSTALL:append:imx8mnea-ucom = "\
    ea-resizefs \
