@@ -65,7 +65,7 @@ IMAGE_INSTALL:append:imx8mnea-ucom = "\
    ea-resizefs \
 "
 
-IMAGE_INSTALL:append = " packagegroup-ea-wireless"
+# IMAGE_INSTALL:append = " packagegroup-ea-wireless"
 
 inherit core-image
 

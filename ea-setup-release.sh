@@ -182,6 +182,7 @@ echo "BBLAYERS += \"\${BSPDIR}/sources/meta-clang\"" >> $BUILD_DIR/conf/bblayers
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-gnome\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-networking\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-filesystems\"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \"\${BSPDIR}/sources/meta-openembedded/meta-perl\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-qt6\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-security/meta-parsec\"" >> $BUILD_DIR/conf/bblayers.conf
 echo "BBLAYERS += \"\${BSPDIR}/sources/meta-security/meta-tpm\"" >> $BUILD_DIR/conf/bblayers.conf
@@ -203,7 +204,7 @@ echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.
 if [ "$MACHINE" == "imx8mmea-som" ]; then
     echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea-dx \"" >> $BUILD_DIR/conf/bblayers.conf
 fi
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+#echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
 
 cd  $BUILD_DIR
 clean_up
