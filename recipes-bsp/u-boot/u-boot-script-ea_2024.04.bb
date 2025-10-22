@@ -10,11 +10,14 @@ BOOTSCRIPT = "bootscript.txt"
 BOOTSCRIPT:mx8m-nxp-bsp = "bootscript_imx8.txt"
 BOOTSCRIPT:mx93-nxp-bsp = "bootscript_imx8.txt"
 
+UIMAGE_ARCH = "arm"
+UIMAGE_ARCH:aarch64 = "arm64"
+
 inherit uboot-config
 inherit deploy
 
 do_mkimage () {
-    uboot-mkimage -A arm -O linux -T script -C none -a 0 -e 0 \
+    uboot-mkimage -A ${UIMAGE_ARCH} -O linux -T script -C none -a 0 -e 0 \
                   -n "EA BootScript" -d "${UNPACKDIR}/${BOOTSCRIPT}" \
                   ${S}/boot.scr
 }
