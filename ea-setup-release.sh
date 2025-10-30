@@ -97,14 +97,6 @@ if [ -z "$MACHINE" ]; then
     MACHINE='imx6qpsabresd'
 fi
 
-if [ "$MACHINE" == "imx8mmea-som" ]; then
-    if [ "$DISTRO" != "fsl-imx-xwayland" ]; then
-        echo -e "\n ERROR - Only the fsl-imx-xwayland distro is supported for the i.MX8M Mini SOM"
-        echo -e "\n"
-        return 1
-    fi
-fi
-
 case $MACHINE in
 imx8*)
     case $DISTRO in
