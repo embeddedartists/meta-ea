@@ -196,7 +196,7 @@ echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.
 if [ "$MACHINE" == "imx8mmea-som" ]; then
     echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea-dx \"" >> $BUILD_DIR/conf/bblayers.conf
 fi
-#echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
 
 cd  $BUILD_DIR
 clean_up
