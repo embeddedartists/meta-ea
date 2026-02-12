@@ -21,7 +21,7 @@ KERNEL_SRC ?= "git://github.com/embeddedartists/linux-imx.git;protocol=https;bra
 KBRANCH = "${SRCBRANCH}"
 SRC_URI = "${KERNEL_SRC}"
 
-SRCREV = "bef2b5f8ab36dcde2d195e25e0f6f4d2c10eb8da"
+SRCREV = "d20decff9a9ec22362b4c2fbebd3f8ed65a02c84"
 
 #SRC_URI += "file://0001-tty-vt-conmakehash-Don-t-mention-the-full-path-of-th.patch"
 #SRC_URI += "file://0001-video-logo-Drop-full-path-of-the-input-filename-in-g.patch"
