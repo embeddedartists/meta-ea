@@ -55,6 +55,7 @@ IMAGE_INSTALL = "\
    python3-dev\
    auditd \
    iptables \
+   git \
 "
 
 IMAGE_INSTALL:append:imx8mmea-som = "\
