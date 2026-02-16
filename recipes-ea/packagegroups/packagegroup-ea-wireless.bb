@@ -10,4 +10,6 @@ RDEPENDS:${PN} = " \
     hostap-utils \
     wpa-supplicant \
     net-tools \
+    cyw-hostapd \
+    cyw-supplicant \
 "
