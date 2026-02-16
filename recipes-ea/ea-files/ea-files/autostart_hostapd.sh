@@ -104,7 +104,7 @@ fi
 module=${module/bt_hint=/}
 
 case $module in
-  cypress)
+  cypress|cypress_2ea)
     case $1 in
       enable)
         setup_cypress true
