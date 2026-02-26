@@ -45,7 +45,7 @@ fi
 module=${module/bt_hint=/}
 
 case $module in
-  cypress)
+  cypress|cypress_2ea)
     echo "Starting..."
     start_hostapd_cypress
     echo "Done"

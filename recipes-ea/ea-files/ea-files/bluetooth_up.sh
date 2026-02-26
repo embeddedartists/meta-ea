@@ -69,10 +69,10 @@ fi
 module=${module/bt_hint=/}
 
 case $module in
-  cypress_2ea)
+  cypress|cypress_2ea)
     # Load btbcm.ko and hci_uart.ko for 2EA Bluetooth bring-up
     if [ -e /usr/share/murata_wireless/hci_uart.ko ]; then
-        insmod /lib/modules/$(uname -r)/kernel/drivers/bluetooth/btbcm.ko
+        insmod /usr/share/murata_wireless/btbcm.ko
         insmod /usr/share/murata_wireless/hci_uart.ko
         hciconfig hci0 up
         if ($do_scan); then
@@ -84,20 +84,6 @@ case $module in
             echo "To run a scan again, use bluetoothctl scan on"
             echo ""
         fi
-    fi
-    ;;
-  cypress)
-    hciattach $btuart bcm43xx 3000000 flow
-    hciconfig hci0 up
-    if ($do_scan); then
-      hciconfig hci0 piscan
-      bluetoothctl agent on
-      bluetoothctl pairable on
-      bluetoothctl discoverable on
-      bluetoothctl --timeout 3 scan on
-      echo ""
-      echo "To run a scan again, use bluetoothctl scan on"
-      echo ""
     fi
     ;;
   nxp|nxp_1ym_pcie|nxp_1ym_sdio|nxp_1xl_pcie)
