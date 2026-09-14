@@ -97,5 +97,5 @@ KBUILD_DEFCONFIG:mx9-nxp-bsp = "${IMX_KERNEL_CONFIG_AARCH64}"
 
 do_kernel_configcheck[noexec] = "1"
 
-KERNEL_VERSION_SANITY_SKIP="1"
+KERNEL_VERSION_SANITY_SKIP = "1"
 COMPATIBLE_MACHINE = "(imx-nxp-bsp)"

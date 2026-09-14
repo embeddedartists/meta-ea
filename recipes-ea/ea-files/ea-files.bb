@@ -2,7 +2,7 @@ SUMMARY = "Miscellaneous files for the base system"
 DESCRIPTION = "The ea-files package adds some files referenced in documentation."
 SECTION = "base"
 LICENSE = "MIT"
-LIC_FILES_CHKSUM="file://LICENSE;md5=0835ade698e0bcf8506ecda2f7b4f302"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 SRC_URI = "file://10-wired.network \
            file://20-wireless-wlan0.network \
@@ -19,8 +19,7 @@ SRC_URI = "file://10-wired.network \
            file://LICENSE \
            "
 
-S = "${WORKDIR}/sources"
-UNPACKDIR = "${S}"
+S = "${UNPACKDIR}"
 
 EA_FILES_644 ?= ""
 EA_FILES_755 ?= ""

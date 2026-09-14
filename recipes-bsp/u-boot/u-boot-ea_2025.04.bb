@@ -24,18 +24,20 @@ BOOT_TOOLS = "imx-boot-tools"
 #
 KCONFIG_CONFIG_ENABLE_MENUCONFIG = "false"
 
-do_deploy:append:mx8m-nxp-bsp () {
-    # Deploy the mkimage, u-boot-nodtb.bin and fsl-imx8mq-XX.dtb for mkimage to generate boot binary
-    if [ -n "${UBOOT_CONFIG}" ] && [ "${UBOOT_CONFIG}" != "mfgtool" ]
+do_deploy:append:mx8m-generic-bsp () {
+    # Deploy u-boot-nodtb.bin and fsl-imx8m*-XX.dtb for mkimage to generate boot binary
+    if [ -n "${UBOOT_CONFIG}" ]
     then
         for config in ${UBOOT_MACHINE}; do
             i=$(expr $i + 1);
             for type in ${UBOOT_CONFIG}; do
+                builddir="${config}-${type}"
                 j=$(expr $j + 1);
                 if [ $j -eq $i ]
                 then
+                    builddir="${config}-${type}"
                     install -d ${DEPLOYDIR}/${BOOT_TOOLS}
-                    install -m 0777 ${B}/${config}/u-boot-nodtb.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/u-boot-nodtb.bin-${MACHINE}-${type}
+                    install -m 0644 ${B}/${builddir}/u-boot-nodtb.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/u-boot-nodtb.bin-${MACHINE}-${type}
                     UBOOT_DTB_NAME_FLAGS="${type}:${UBOOT_DTB_NAME}"
                     for key_value in ${UBOOT_DTB_NAME_FLAGS}; do
                         local type_key="${key_value%%:*}"
@@ -46,18 +48,21 @@ do_deploy:append:mx8m-nxp-bsp () {
                             bbnote "UBOOT_CONFIG = $type, UBOOT_DTB_NAME = $dtb_name"
                             # There is only one ${dtb_name}, the first one. All the other are with the type appended
                             if [ ! -f "${DEPLOYDIR}/${BOOT_TOOLS}/${dtb_name}" ]; then
-                                if [ -f "${B}/${config}/dts/upstream/src/arm64/freescale/${dtb_name}" ];then
-                                    dtb_path="${B}/${config}/dts/upstream/src/arm64/freescale"
-                                elif [ -f "${B}/${config}/arch/arm/dts/${dtb_name}" ];then
-                                    dtb_path="${B}/${config}/arch/arm/dts/"
+                                if [ -f "${B}/${builddir}/arch/arm/dts/${dtb_name}" ]; then
+                                    dtb_path="arch/arm/dts"
+                                elif [ -f "${B}/${builddir}/dts/upstream/src/arm64/freescale/${dtb_name}" ]; then
+                                    dtb_path="dts/upstream/src/arm64/freescale"
                                 else
-                                     bbfatal "no such ${dtb_name}"
+                                     bbfatal "DTB '${dtb_name}' not found in expected locations"
                                 fi
-                                install -m 0644 ${dtb_path}/${dtb_name}  ${DEPLOYDIR}/${BOOT_TOOLS}/${dtb_name}
+                                bbnote "DTB found at ${B}/${builddir}/${dtb_path}/${dtb_name}"
+                                install -m 0644 ${B}/${builddir}/${dtb_path}/${dtb_name} ${DEPLOYDIR}/${BOOT_TOOLS}/${dtb_name}
                             else
                                 bbwarn "Use custom wks.in for $dtb_name = $type"
                             fi
-                            install -m 0644 ${dtb_path}/${dtb_name}  ${DEPLOYDIR}/${BOOT_TOOLS}/${dtb_name}-${type}
+                            if [ -f "${B}/${builddir}/${dtb_path}/${dtb_name}" ]; then
+                                install -m 0644 ${B}/${builddir}/${dtb_path}/${dtb_name} ${DEPLOYDIR}/${BOOT_TOOLS}/${dtb_name}-${type}
+                            fi
                         fi
                         unset type_key
                         unset dtb_name
