@@ -56,6 +56,7 @@ IMAGE_INSTALL = "\
    auditd \
    iptables \
    git \
+   packagegroup-imx-core-tools \
 "
 
 IMAGE_INSTALL:append:imx8mmea-som = "\
