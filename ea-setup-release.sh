@@ -197,7 +197,10 @@ echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea \"" >> $BUILD_DIR/conf/bblayers.
 if [ "$MACHINE" == "imx8mmea-som" ]; then
     echo "BBLAYERS += \" \${BSPDIR}/sources/meta-ea-dx \"" >> $BUILD_DIR/conf/bblayers.conf
 fi
-echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+
+# Not yet ported
+# echo "BBLAYERS += \" \${BSPDIR}/sources/meta-murata-wireless \"" >> $BUILD_DIR/conf/bblayers.conf
+echo "IMAGE_INSTALL:remove = \" packagegroup-ea-wireless\"" >> conf/local.conf
 
 cd  $BUILD_DIR
 clean_up
