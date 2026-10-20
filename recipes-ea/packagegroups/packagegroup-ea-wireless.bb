@@ -12,4 +12,5 @@ RDEPENDS:${PN} = " \
     net-tools \
     cyw-hostapd \
     cyw-supplicant \
+    wl-tool \
 "

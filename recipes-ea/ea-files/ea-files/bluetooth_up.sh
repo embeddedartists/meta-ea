@@ -87,6 +87,9 @@ case $module in
     fi
     ;;
   nxp|nxp_1ym_pcie|nxp_1ym_sdio|nxp_1xl_pcie)
+    modprobe btbcm
+    modprobe hci_uart
+    modprobe crc8
     insmod /usr/share/murata_wireless/btnxpuart.ko
     hciconfig hci0 up
     if ($do_scan); then
